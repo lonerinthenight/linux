@@ -29,7 +29,7 @@
 *.lzma
 *.patch
 *.gcno
-
+linux*project
 #
 # Top-level generic files
 #

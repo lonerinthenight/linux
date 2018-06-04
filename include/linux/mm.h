@@ -68,7 +68,7 @@ extern unsigned int kobjsize(const void *objp);
 #define VM_READ		0x00000001	/* currently active flags */
 #define VM_WRITE	0x00000002
 #define VM_EXEC		0x00000004
-#define VM_SHARED	0x00000008
+#define VM_SHARED	0x00000008	/*进程们共享该VMA*/
 
 /* mprotect() hardcodes VM_MAYREAD >> 4 == VM_READ, and so for r/w/x bits. */
 #define VM_MAYREAD	0x00000010	/* limits for mprotect() etc */
@@ -91,7 +91,7 @@ extern unsigned int kobjsize(const void *objp);
 
 #define VM_DONTCOPY	0x00020000      /* Do not copy this vma on fork */
 #define VM_DONTEXPAND	0x00040000	/* Cannot expand with mremap() */
-#define VM_RESERVED	0x00080000	/* Count as reserved_vm like IO */
+#define VM_RESERVED	0x00080000	/* Count as reserved_vm like IO（不能被swap out） */
 #define VM_ACCOUNT	0x00100000	/* Is a VM accounted object */
 #define VM_NORESERVE	0x00200000	/* should the VM suppress accounting */
 #define VM_HUGETLB	0x00400000	/* Huge TLB Page VM */
@@ -182,13 +182,13 @@ struct vm_fault {
  * to the functions called when a no-page or a wp-page exception occurs. 
  */
 struct vm_operations_struct {
-	void (*open)(struct vm_area_struct * area);
-	void (*close)(struct vm_area_struct * area);
-	int (*fault)(struct vm_area_struct *vma, struct vm_fault *vmf);
+	void (*open)(struct vm_area_struct * area); /*把vma加入“VMAs链表/rb树”（mm_struct） */
+	void (*close)(struct vm_area_struct * area);/*把vma从“VMAs链表/rb树”删除 */
+	int (*fault)(struct vm_area_struct *vma, struct vm_fault *vmf); /*处理被swap out的物理页*/
 
 	/* notification that a previously read-only page is about to become
 	 * writable, if an error is returned it will cause a SIGBUS */
-	int (*page_mkwrite)(struct vm_area_struct *vma, struct vm_fault *vmf);
+	int (*page_mkwrite)(struct vm_area_struct *vma, struct vm_fault *vmf);/*处理read only的物理页*/
 
 	/* called by access_process_vm when get_user_pages() fails, typically
 	 * for use by special VMAs that can switch between memory and hardware
@@ -1138,14 +1138,21 @@ extern unsigned long mmap_region(struct file *file, unsigned long addr,
 	unsigned long len, unsigned long flags,
 	unsigned int vm_flags, unsigned long pgoff);
 
+/*
+  1.1. 创建新的VMA
+  1.2. 若新建的VMA与某VMA相邻，且访问权限相同，则合并进旧VMA
+  2.1. 系统调用mmap -> mmap2 -> do_mmap
+  3.1. 若file==NULL且offset==0，则该映射为 anonymous mapping，[0,len)映射到VMA。
+       否则为file-backed mapping，[file->offset,len)映射到VMA。
+*/
 static inline unsigned long do_mmap(struct file *file, unsigned long addr,
-	unsigned long len, unsigned long prot,
-	unsigned long flag, unsigned long offset)
+	unsigned long len, unsigned long prot/*rwx*/,
+	unsigned long flag/*SHR, PRI, Anonymous, GrownDown..*/, unsigned long offset)
 {
 	unsigned long ret = -EINVAL;
 	if ((offset + PAGE_ALIGN(len)) < offset)
 		goto out;
-	if (!(offset & ~PAGE_MASK))
+	if (!(offset & ~PAGE_MASK))//offset必须PAGE_SIZE对齐
 		ret = do_mmap_pgoff(file, addr, len, prot, flag, offset >> PAGE_SHIFT);
 out:
 	return ret;

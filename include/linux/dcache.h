@@ -91,8 +91,7 @@ struct dentry {
 	unsigned int d_flags;		/* protected by d_lock */
 	spinlock_t d_lock;		/* per dentry lock */
 	int d_mounted;
-	struct inode *d_inode;		/* Where the name belongs to - NULL is
-					 * negative */
+	struct inode *d_inode;		/* Where the name belongs to - NULL is negative */
 	/*
 	 * The next three fields are touched by __d_lookup.  Place them here
 	 * so they all fit in a cache line.

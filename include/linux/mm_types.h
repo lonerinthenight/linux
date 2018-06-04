@@ -136,14 +136,13 @@ struct vm_area_struct {
 	unsigned long vm_start;		/* Our start address within vm_mm. */
 	unsigned long vm_end;		/* The first byte after our end address
 					   within vm_mm. */
-
-	/* linked list of VM areas per task, sorted by address */
-	struct vm_area_struct *vm_next;
+					   	
+	struct vm_area_struct *vm_next;/* list of VMAs per task, sorted by address */
 
 	pgprot_t vm_page_prot;		/* Access permissions of this VMA. */
 	unsigned long vm_flags;		/* Flags, see mm.h. */
 
-	struct rb_node vm_rb;
+	struct rb_node vm_rb;		/*用rb树把VMAs链接起来*/
 
 	/*
 	 * For areas with an address space and backing store,
@@ -199,9 +198,12 @@ struct core_state {
 	struct completion startup;
 };
 
+/*内核线程mm_struct = NULL,使用上一进程的mm_struct和页表。
+  因内核线程不访问“用户空间”，所以只访问“进程地址空间”中的“内核空间”，
+  这样，可避免切换mm_struct和页表的消耗*/
 struct mm_struct {
-	struct vm_area_struct * mmap;		/* list of VMAs */
-	struct rb_root mm_rb;
+	struct vm_area_struct * mmap;		/*进程所有VMAs单向链表（按地址递增），用于遍历VMAs*/
+	struct rb_root mm_rb;				/*进程所有VMAs rb树表示,用于VMA的插入、删除、搜索，O(log(n)*/
 	struct vm_area_struct * mmap_cache;	/* last find_vma result */
 	unsigned long (*get_unmapped_area) (struct file *filp,
 				unsigned long addr, unsigned long len,
@@ -211,13 +213,20 @@ struct mm_struct {
 	unsigned long task_size;		/* size of task vm space */
 	unsigned long cached_hole_size; 	/* if non-zero, the largest hole below free_area_cache */
 	unsigned long free_area_cache;		/* first hole of size cached_hole_size or larger */
-	pgd_t * pgd;
+
+	spinlock_t page_table_lock;		/* Protects page tables and some counters */
+	pgd_t * pgd;				/* page global dir array*/
+	/*pgdr寄存器：硬件完成“LA->PA转换”、硬件增加TLB（LA-PA缓存）
+	   |->pgd(pgd_e_1, pgd_e_2, ..., pgd_e_N)
+		  	    |--->pmd(pmd_e_1, pmd_e_2, ..., pmd_e_N) 
+			  			   |--->pte(pte_e_1, pte_e_2, ..., pte_e_N)
+			  			  			  |--->struct page -> 1个物理页     	*/
+			  			  			  
 	atomic_t mm_users;			/* How many users with user space? */
 	atomic_t mm_count;			/* How many references to "struct mm_struct" (users count as 1) */
 	int map_count;				/* number of VMAs */
 	struct rw_semaphore mmap_sem;
-	spinlock_t page_table_lock;		/* Protects page tables and some counters */
-
+	
 	struct list_head mmlist;		/* List of maybe swapped mm's.	These are globally strung
 						 * together off init_mm.mmlist, and are protected
 						 * by mmlist_lock
@@ -235,12 +244,12 @@ struct mm_struct {
 	unsigned long total_vm, locked_vm, shared_vm, exec_vm;
 	unsigned long stack_vm, reserved_vm, def_flags, nr_ptes;
 	unsigned long start_code, end_code, start_data, end_data;
-	unsigned long start_brk, brk, start_stack;
+	unsigned long start_brk, brk/*用于malloc等*/, start_stack;
 	unsigned long arg_start, arg_end, env_start, env_end;
 
 	unsigned long saved_auxv[AT_VECTOR_SIZE]; /* for /proc/PID/auxv */
 
-	struct linux_binfmt *binfmt;
+	struct linux_binfmt *binfmt;/*load 二进制bin、lib等*/
 
 	cpumask_t cpu_vm_mask;
 
@@ -281,7 +290,7 @@ struct mm_struct {
 
 #ifdef CONFIG_PROC_FS
 	/* store ref to file /proc/<pid>/exe symlink points to */
-	struct file *exe_file;
+	struct file *exe_file; /*进程对应的可执行文件*/
 	unsigned long num_exe_file_vmas;
 #endif
 #ifdef CONFIG_MMU_NOTIFIER

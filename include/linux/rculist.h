@@ -4,7 +4,7 @@
 #ifdef __KERNEL__
 
 /*
- * RCU-protected list version
+ * RCU-protected list version  Read-Copy Update
  */
 #include <linux/list.h>
 #include <linux/rcupdate.h>

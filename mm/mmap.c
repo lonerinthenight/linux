@@ -904,8 +904,8 @@ void vm_stat_account(struct mm_struct *mm, unsigned long flags,
 
 /*
  * The caller must hold down_write(&current->mm->mmap_sem).
+  [file->offset, len]
  */
-
 unsigned long do_mmap_pgoff(struct file *file, unsigned long addr,
 			unsigned long len, unsigned long prot,
 			unsigned long flags, unsigned long pgoff)
@@ -1485,6 +1485,7 @@ struct vm_area_struct *find_vma(struct mm_struct *mm, unsigned long addr)
 		/* Check the cache first. */
 		/* (Cache hit rate is typically around 35%.) */
 		vma = mm->mmap_cache;
+		
 		if (!(vma && vma->vm_end > addr && vma->vm_start <= addr)) {
 			struct rb_node * rb_node;
 
@@ -1498,18 +1499,20 @@ struct vm_area_struct *find_vma(struct mm_struct *mm, unsigned long addr)
 						struct vm_area_struct, vm_rb);
 
 				if (vma_tmp->vm_end > addr) {
-					vma = vma_tmp;
+					vma = vma_tmp;//addr不一定在vma中
 					if (vma_tmp->vm_start <= addr)
-						break;
+						break;//addr在vma中
 					rb_node = rb_node->rb_left;
 				} else
 					rb_node = rb_node->rb_right;
 			}
 			if (vma)
-				mm->mmap_cache = vma;
+				mm->mmap_cache = vma;//缓存last vma（hit rate 35%）
+		}else{
+			//addr在vma中
 		}
 	}
-	return vma;
+	return vma;//要么包含addr的vma，要么第一个大于addr的vma，要么NULL
 }
 
 EXPORT_SYMBOL(find_vma);
@@ -1888,8 +1891,10 @@ int split_vma(struct mm_struct * mm, struct vm_area_struct * vma,
  * what needs doing, and the areas themselves, which do the
  * work.  This now handles partial unmappings.
  * Jeremy Fitzhardinge <jeremy@goop.org>
+   1.1 从进程mm中删除 (start,len] 所在VMAs。
+ 
  */
-int do_munmap(struct mm_struct *mm, unsigned long start, size_t len)
+int do_munmap(struct mm_struct *mm, unsigned long start, size_t len)/*munmap(start,end)*/
 {
 	unsigned long end;
 	struct vm_area_struct *vma, *prev, *last;

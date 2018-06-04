@@ -720,7 +720,7 @@ struct inode {
 	struct hlist_node	i_hash;
 	struct list_head	i_list;		/* backing dev IO list */
 	struct list_head	i_sb_list;
-	struct list_head	i_dentry;
+	struct list_head	i_dentry;//链到“used dentry链表们(1个inode可能位于多个文件夹)”
 	unsigned long		i_ino;
 	atomic_t		i_count;
 	unsigned int		i_nlink;
@@ -914,9 +914,11 @@ struct file {
 		struct list_head	fu_list;
 		struct rcu_head 	fu_rcuhead;
 	} f_u;
+
 	struct path		f_path;
-#define f_dentry	f_path.dentry
-#define f_vfsmnt	f_path.mnt
+	#define f_dentry	f_path.dentry //指向dentry -> inode -> file_data
+	#define f_vfsmnt	f_path.mnt
+	
 	const struct file_operations	*f_op;
 	spinlock_t		f_lock;  /* f_ep_links, f_flags, no IRQ */
 	atomic_long_t		f_count;
