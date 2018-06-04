@@ -425,8 +425,8 @@ extern struct kmem_cache *task_xstate_cachep;
 struct thread_struct {
 	/* Cached TLS descriptors: */
 	struct desc_struct	tls_array[GDT_ENTRY_TLS_ENTRIES];
-	unsigned long		sp0;
-	unsigned long		sp;
+	unsigned long		sp0; /* 内核态栈顶指针（进程进入内核态、内核线程） */
+	unsigned long		sp;  /* 用户态栈顶指针 */
 #ifdef CONFIG_X86_32
 	unsigned long		sysenter_cs;
 #else

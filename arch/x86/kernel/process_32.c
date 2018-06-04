@@ -338,7 +338,8 @@ EXPORT_SYMBOL_GPL(start_thread);
  *
  * The return value (in %ax) will be the "prev" task after
  * the task-switch, and shows up in ret_from_fork in entry.S,
- * for example.
+ * for example:
+    do_fork() -> ret_from_fork() -> schedule_tail(pre_p)
  */
 __notrace_funcgraph struct task_struct *
 __switch_to(struct task_struct *prev_p, struct task_struct *next_p)

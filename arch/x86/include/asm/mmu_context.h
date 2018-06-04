@@ -30,6 +30,7 @@ static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
 #endif
 }
 
+/* 切换页表：加载next进程的cr3、ldtr寄存器 */	
 static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
 			     struct task_struct *tsk)
 {
@@ -44,14 +45,14 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
 #endif
 		cpumask_set_cpu(cpu, mm_cpumask(next));
 
-		/* Re-load page tables */
-		load_cr3(next->pgd);
+		/* Re-load 新进程 page tables（CR3 = pgd基址寄存器） */
+		load_cr3(next->pgd);	/* 加载next进程的 cr3寄存器 */
 
 		/*
 		 * load the LDT, if the LDT is different:
 		 */
 		if (unlikely(prev->context.ldt != next->context.ldt))
-			load_LDT_nolock(&next->context);
+			load_LDT_nolock(&next->context);	/* 加载next进程的“ldtr寄存器” */
 	}
 #ifdef CONFIG_SMP
 	else {
@@ -70,7 +71,7 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
 #endif
 }
 
-#define activate_mm(prev, next)			\
+#define activate_mm(prev, next)	/* 切换页表：加载next进程的cr3、ldtr寄存器 */		\
 do {						\
 	paravirt_activate_mm((prev), (next));	\
 	switch_mm((prev), (next), NULL);	\

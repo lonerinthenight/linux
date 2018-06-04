@@ -317,15 +317,19 @@
 	CFI_OFFSET ebx, PT_EBX-PT_OLDESP
 .endm
 
+#1. ret_from_fork前，调用schedule() -> context_switch() -> switch_mm(),switch_to()
+#					 -> __switch_to()返回 pre_p（被调度下来的进程）
+#2. pre_p 通过 %eax传给 do_fork() -> ret_from_fork() -> schedule_tail()
 ENTRY(ret_from_fork)
 	CFI_STARTPROC
-	pushl %eax
+	pushl %eax				# pre_p进程
 	CFI_ADJUST_CFA_OFFSET 4
 	call schedule_tail
 	GET_THREAD_INFO(%ebp)
 	popl %eax
 	CFI_ADJUST_CFA_OFFSET -4
-	pushl $0x0202			# Reset kernel eflags
+	pushl $0x0202			# Reset kernel eflags:0000,0000,0000,0000,0000,0010,0000,0010
+	                        #                                                |-中断使能             
 	CFI_ADJUST_CFA_OFFSET 4
 	popfl
 	CFI_ADJUST_CFA_OFFSET -4

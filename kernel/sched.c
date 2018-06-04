@@ -2827,9 +2827,10 @@ asmlinkage void schedule_tail(struct task_struct *prev)
 		put_user(task_pid_vnr(current), current->set_child_tid);
 }
 
-/*
- * context_switch - switch to the new MM and the new
- * thread's register state.
+/*  context_switch - switch to 
+ 		1) the new MM. 
+  		2) the new thread's register state.
+  	
  */
 static inline void
 context_switch(struct rq *rq, struct task_struct *prev,
@@ -2852,9 +2853,9 @@ context_switch(struct rq *rq, struct task_struct *prev,
 		next->active_mm = oldmm;
 		atomic_inc(&oldmm->mm_count);
 		enter_lazy_tlb(oldmm, next);
-	} else
-		switch_mm(oldmm, mm, next);
-
+	} else{
+		switch_mm(oldmm, mm, next);	 /* 1/2 切换页表：加载next进程的cr3（pgd页表基址）、ldtr寄存器 */
+	}
 	if (unlikely(!prev->mm)) {
 		prev->active_mm = NULL;
 		rq->prev_mm = oldmm;
@@ -2870,7 +2871,7 @@ context_switch(struct rq *rq, struct task_struct *prev,
 #endif
 
 	/* Here we just switch the register state and the stack. */
-	switch_to(prev, next, prev);
+	switch_to(prev, next, prev);	/* 2/2 切换CPU状态（所有寄存器们）*/
 
 	barrier();
 	/*
@@ -5218,7 +5219,7 @@ inline cputime_t task_gtime(struct task_struct *p)
 }
 
 /*
- * This function gets called by the timer code, with HZ frequency.
+ * This function gets called by the timer code(时钟中断ISP), with HZ frequency.
  * We call it with interrupts disabled.
  *
  * It also gets called by the fork code, when changing the parent's
@@ -5450,7 +5451,7 @@ need_resched_nonpreemptible:
 		idle_balance(cpu, rq);
 
 	put_prev_task(rq, prev);
-	next = pick_next_task(rq);
+	next = pick_next_task(rq);/* 获取“最高优先级调度类” 的“最高优先级进程” */
 
 	if (likely(prev != next)) {
 		sched_info_switch(prev, next);
