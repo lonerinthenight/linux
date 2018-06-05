@@ -424,7 +424,11 @@ extern struct kmem_cache *task_xstate_cachep;
 
 struct thread_struct {
 	/* Cached TLS descriptors: */
-	struct desc_struct	tls_array[GDT_ENTRY_TLS_ENTRIES];
+	/* 全局描述符表表项：Thread-local storage，
+		1. 看似全局却私有，如errno（每个线程/进程都有一个“自己唯一的errno全局变量”） 
+		2. 避免变量竞争（如多个线程累加某全局变量的情况，每个线程只需累加“自己唯一的全局变量”，最后再将这些“自己唯一的全局变量”累加，即是真正“全局变量”）*/
+	struct desc_struct	tls_array[GDT_ENTRY_TLS_ENTRIES]; 
+	
 	unsigned long		sp0; /* 内核态栈顶指针（进程进入内核态、内核线程） */
 	unsigned long		sp;  /* 用户态栈顶指针 */
 #ifdef CONFIG_X86_32

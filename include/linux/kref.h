@@ -17,13 +17,13 @@
 
 #include <linux/types.h>
 
-struct kref {
+struct kref {	/* 定义成结构体，以便于“类型检查” */
 	atomic_t refcount;
 };
 
 void kref_set(struct kref *kref, int num);
-void kref_init(struct kref *kref);
-void kref_get(struct kref *kref);
-int kref_put(struct kref *kref, void (*release) (struct kref *kref));
+void kref_init(struct kref *kref);										/* 初始化 “引用计数器 = 1”（当前共被被1个代码片引用） */
+void kref_get(struct kref *kref);									    /* 引用某结构（引用计数器 +1） */
+int kref_put(struct kref *kref, void (*release) (struct kref *kref)); /* 释放某结构（引用计数器 -1）*/
 
 #endif /* _KREF_H_ */

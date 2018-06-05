@@ -319,11 +319,11 @@ static int kobject_add_varg(struct kobject *kobj, struct kobject *parent,
  * The kobject name is set and added to the kobject hierarchy in this
  * function.
  *
- * If @parent is set, then the parent of the @kobj will be set to it.
+ * If “@parent is set”, then the parent of the @kobj will be set to it（作为parent目录的子目录）.
  * If @parent is NULL, then the parent of the @kobj will be set to the
- * kobject associted with the kset assigned to this kobject.  If no kset
- * is assigned to the kobject, then the kobject will be located in the
- * root of the sysfs tree.
+ * kobject associted with the “kset” assigned to this kobject（作为kset.kobject基类 目录的子目录）. 
+ * If no kset is assigned to the kobject, then the kobject will be located in the
+ * root of the sysfs tree（作为sysfs根目录的子目录）.
  *
  * If this function returns an error, kobject_put() must be called to
  * properly clean up the memory associated with the object.
@@ -336,7 +336,7 @@ static int kobject_add_varg(struct kobject *kobj, struct kobject *parent,
  * userspace is properly notified of this kobject's creation.
  */
 int kobject_add(struct kobject *kobj, struct kobject *parent,
-		const char *fmt, ...)
+		const char *fmt /*kobject在sysfs中对应的目录名*/, ...)
 {
 	va_list args;
 	int retval;
@@ -508,7 +508,7 @@ out:
  * kobject_del - unlink kobject from hierarchy.
  * @kobj: object.
  */
-void kobject_del(struct kobject *kobj)
+void kobject_del(struct kobject *kobj)/* 删除kobj.sysfs.目录*/
 {
 	if (!kobj)
 		return;
@@ -619,7 +619,7 @@ static struct kobj_type dynamic_kobj_ktype = {
  * call to kobject_put() and not kfree(), as kobject_init() has
  * already been called on this structure.
  */
-struct kobject *kobject_create(void)
+struct kobject *kobject_create(void)	/*创建并init kobject对象*/
 {
 	struct kobject *kobj;
 
@@ -644,7 +644,7 @@ struct kobject *kobject_create(void)
  *
  * If the kobject was not able to be created, NULL will be returned.
  */
-struct kobject *kobject_create_and_add(const char *name, struct kobject *parent)
+struct kobject *kobject_create_and_add(const char *name/*sysfs.新kobj.目录名*/, struct kobject *parent/*上级节点*/)
 {
 	struct kobject *kobj;
 	int retval;

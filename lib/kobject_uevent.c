@@ -86,6 +86,8 @@ out:
  * Returns 0 if kobject_uevent() is completed with success or the
  * corresponding error when it fails.
  */
+ /* 通过“netlink”实现 内核事件信号 向用户空间sysfs 传递；
+	这样用户程序可堵塞在该socket API，收到事件，传到系统栈；也便于导入D-BUS系统消息总线*/
 int kobject_uevent_env(struct kobject *kobj, enum kobject_action action,
 		       char *envp_ext[])
 {
@@ -277,7 +279,8 @@ EXPORT_SYMBOL_GPL(kobject_uevent_env);
  * Returns 0 if kobject_uevent() is completed with success or the
  * corresponding error when it fails.
  */
-int kobject_uevent(struct kobject *kobj, enum kobject_action action)
+ /* 向用户空间（sysfs文件）发送内核事件信号*/
+int kobject_uevent(struct kobject *kobj /*发送信号者*/, enum kobject_action action /*事件类型，add,rm,change,move...*/)
 {
 	return kobject_uevent_env(kobj, action, NULL);
 }

@@ -55,20 +55,30 @@ enum kobject_action {
 	KOBJ_OFFLINE,
 	KOBJ_MAX
 };
-
+/* Device Model: 统一的“设备（含伪设备）管理接口”。初衷：便于系统设备电源管理。
+   1. 统一设备模型，以“树状结构”把所有设备连贯起来。设备节点.用于构建统一设备模型.“头”。
+   2. 被嵌入其它结构，如struct cdev{ struct kobject kobj}，cdev便可被嵌入“树状结构”、“设备集合”。
+   3. 每个kobject对应 sysfs中的一个目录*/
 struct kobject {
-	const char		*name;
-	struct list_head	entry;
-	struct kobject		*parent;
-	struct kset		*kset;
-	struct kobj_type	*ktype;
-	struct sysfs_dirent	*sd;
-	struct kref		kref;
-	unsigned int state_initialized:1;
-	unsigned int state_in_sysfs:1;
-	unsigned int state_add_uevent_sent:1;
-	unsigned int state_remove_uevent_sent:1;
-	unsigned int uevent_suppress:1;
+	const char			*name;				/* 名称 */
+	
+	struct list_head	entry;				/* 把同一集合内的kobject串联起来 */
+	
+	struct kobject		*parent;			/* 把kobject组织成 指向父亲的“树状结构” */
+	
+	struct kset			*kset;				/* 指向本 kobject所属的集合 */
+	
+	struct kobj_type	*ktype;				/* 描述一类 kobjects 共有特性（节省空间，如析构函数、sysfs_op、默认属性<sys文件>）   */
+											/*ktype.default_attrs[]数组被映射成 sysfs中kobject目录下的文件 */
+	
+	struct sysfs_dirent	*sd;				/* kobject 在sysfs中的 文件节点（类似inode），初衷是“便于device model的调试” */
+
+	struct kref			kref;				/* kobject 引用计数器，减到0时，调用ktype->release()，释放kobject内存、其它清理工作 */
+	unsigned int 		state_initialized:1;
+	unsigned int 		state_in_sysfs:1;
+	unsigned int 		state_add_uevent_sent:1;
+	unsigned int 		state_remove_uevent_sent:1;
+	unsigned int 		uevent_suppress:1;
 };
 
 extern int kobject_set_name(struct kobject *kobj, const char *name, ...)
@@ -105,9 +115,11 @@ extern void kobject_put(struct kobject *kobj);
 extern char *kobject_get_path(struct kobject *kobj, gfp_t flag);
 
 struct kobj_type {
-	void (*release)(struct kobject *kobj);
-	struct sysfs_ops *sysfs_ops;
-	struct attribute **default_attrs;
+	void (*release)(struct kobject *kobj);	/* kobject 引用计数器ref减到0时，析构kobject */
+	struct sysfs_ops *sysfs_ops;			/* kobjct 对应 sysfs文件们 的 读写操作 */
+											/* sysfs_create_file() */
+	
+	struct attribute **default_attrs;		/* 该类kobjects的共有属性，该数组被映射成“sysfs目录下的文件们” */
 };
 
 struct kobj_uevent_env {
@@ -151,11 +163,11 @@ extern struct sysfs_ops kobj_sysfs_ops;
  * can add new environment variables, or filter out the uevents if so
  * desired.
  */
-struct kset {
-	struct list_head list;
-	spinlock_t list_lock;
-	struct kobject kobj;
-	struct kset_uevent_ops *uevent_ops;
+struct kset {	/* 某类kobject集合的“头” */
+	struct list_head list;				/* 通过kobject.entry把本集合内的全部kobjects串联起来 */
+	spinlock_t list_lock;				/* 本集合链表的spinlock */
+	struct kobject kobj;				/* 本集合中kobjects 的基类*/
+	struct kset_uevent_ops *uevent_ops;	/* 本集合中kobjects的热插拔操作*/
 };
 
 extern void kset_init(struct kset *kset);

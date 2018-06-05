@@ -615,17 +615,25 @@ int pagecache_write_end(struct file *, struct address_space *mapping,
 				struct page *page, void *fsdata);
 
 struct backing_dev_info;
+/*  page_cache_a_file: “文件”在RAM中的cache 的管理 
+	buffer用来表示disk block in RAM.page
+*/
 struct address_space {
-	struct inode		*host;		/* owner: inode, block_device */
-	struct radix_tree_root	page_tree;	/* radix tree of all pages */
-	spinlock_t		tree_lock;	/* and lock protecting it */
-	unsigned int		i_mmap_writable;/* count VM_SHARED mappings */
-	struct prio_tree_root	i_mmap;		/* tree of private and shared mappings */
-	struct list_head	i_mmap_nonlinear;/*list VM_NONLINEAR mappings */
-	spinlock_t		i_mmap_lock;	/* protect tree, count, list */
+	struct inode			*host;				/* owner: inode, block_device */
+
+	struct radix_tree_root	page_tree;			/* radix tree of all pages */
+	spinlock_t				tree_lock;			/* and lock protecting it */
+	
+	unsigned int			i_mmap_writable;	/* count VM_SHARED mappings */
+	struct prio_tree_root	i_mmap;				/* tree of private and shared mappings */
+	struct list_head		i_mmap_nonlinear;	/*list VM_NONLINEAR mappings */
+	spinlock_t				i_mmap_lock;		/* protect tree, count, list */
+	
 	unsigned int		truncate_count;	/* Cover race condition with truncate */
 	unsigned long		nrpages;	/* number of total pages */
+	
 	pgoff_t			writeback_index;/* writeback starts here */
+	
 	const struct address_space_operations *a_ops;	/* methods */
 	unsigned long		flags;		/* error bits/gfp mask */
 	struct backing_dev_info *backing_dev_info; /* device readahead, etc */

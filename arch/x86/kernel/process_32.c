@@ -322,14 +322,14 @@ EXPORT_SYMBOL_GPL(start_thread);
  * with modern CPU's, and this simplifies a lot of things (SMP
  * and UP become the same).
  *
- * NOTE! We used to use the x86 hardware context switching. The
+ * NOTE! We used to use the x86 hardware task-switch. The
  * reason for not using it any more becomes apparent when you
  * try to recover gracefully from saved state that is no longer
  * valid (stale segment register values in particular). With the
  * hardware task-switch, there is no way to fix up bad state in
  * a reasonable manner.
  *
- * The fact that Intel documents the hardware task-switching to
+ * The fact that Intel documents the hardware task-switch to
  * be slow is a fairly red herring - this code is not noticeably
  * faster. However, there _is_ some room for improvement here,
  * so the performance issues may eventually be a valid point.
@@ -388,7 +388,7 @@ __switch_to(struct task_struct *prev_p, struct task_struct *next_p)
 	load_TLS(next, cpu);
 
 	/*
-	 * Restore IOPL if needed.  In normal use, the flags restore
+	 * Restore IOPL（I/O Privilege Level） if needed.  In normal use, the flags restore
 	 * in the switch assembly will handle this.  But if the kernel
 	 * is running virtualized at a non-zero CPL, the popf will
 	 * not restore flags, so it must be done in a separate step.
@@ -406,7 +406,7 @@ __switch_to(struct task_struct *prev_p, struct task_struct *next_p)
 	/* If we're going to preload the fpu context, make sure clts
 	   is run while we're batching the cpu state updates. */
 	if (preload_fpu)
-		clts();
+		clts();	 /* 1. Clear task-switched (TS) flag in CR0, 保存旧线程 “x87 FPU, XMM, and MXCSR寄存器” */
 
 	/*
 	 * Leave lazy mode, flushing any hypercalls made here.
@@ -418,7 +418,7 @@ __switch_to(struct task_struct *prev_p, struct task_struct *next_p)
 	arch_end_context_switch(next_p);
 
 	if (preload_fpu)
-		__math_state_restore();
+		__math_state_restore();	/* 2. 恢复新线程 “x87 FPU, XMM, and MXCSR寄存器” */
 
 	/*
 	 * Restore %gs if needed (which is common)

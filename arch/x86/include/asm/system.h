@@ -336,6 +336,8 @@ static inline void native_wbinvd(void)
 
 #endif/* CONFIG_PARAVIRT */
 
+/*  若设置CR0.TS，则当且仅当执行 x87 FPU/MMX/SSE/SSE2/SSE3/SSSE3/SSE4指令时，触发 #NM 中断，
+	                        中断ISP清除CR0.TS，保存“旧进程的x87 FPU, XMM, MXCSR寄存器”。 page2731*/
 #define stts() write_cr0(read_cr0() | X86_CR0_TS)
 
 #endif /* __KERNEL__ */

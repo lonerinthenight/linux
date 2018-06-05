@@ -34,9 +34,10 @@ struct sysfs_elem_bin_attr {
 };
 
 struct sysfs_inode_attrs {
-	struct iattr	ia_iattr;
-	void		*ia_secdata;
-	u32		ia_secdata_len;
+	struct iattr	ia_iattr;		/* -> *file -> f_dentry -> inode -> f_data    */
+									/*       |---> f_mapping (page_cache_of_file) */
+	void			*ia_secdata;
+	u32				ia_secdata_len;
 };
 
 /*
@@ -47,12 +48,16 @@ struct sysfs_inode_attrs {
  * accessible.  Dereferencing s_elem or any other outer entity
  * requires s_active reference.
  */
-struct sysfs_dirent {
-	atomic_t		s_count;
-	atomic_t		s_active;
-	struct sysfs_dirent	*s_parent;
-	struct sysfs_dirent	*s_sibling;
-	const char		*s_name;
+ /* sysfs：以“文件系统”形式呈现给用户的“设备（含伪设备）管理接口”。初衷是便于“device model的调试”，
+ 	1. “sysfs目录项” 与 kobject 相结合
+	2. sysfs 文件系统树结构（ 父亲-兄弟 形式表示） 
+	扩展：https://www.freedesktop.org/wiki/Software/hal/     */
+struct sysfs_dirent {		
+	atomic_t				s_count;
+	atomic_t				s_active;
+	struct sysfs_dirent		*s_parent;
+	struct sysfs_dirent		*s_sibling;
+	const char				*s_name;
 
 	union {
 		struct sysfs_elem_dir		s_dir;
@@ -62,9 +67,9 @@ struct sysfs_dirent {
 	};
 
 	unsigned int		s_flags;
-	ino_t			s_ino;
-	umode_t			s_mode;
-	struct sysfs_inode_attrs *s_iattr;
+	ino_t				s_ino;
+	umode_t				s_mode;
+	struct sysfs_inode_attrs *s_iattr;	/* sysfs目录项与kobject结合的关键：*file(f_dentry<inode、data>, f_mapping)*/
 };
 
 #define SD_DEACTIVATED_BIAS		INT_MIN

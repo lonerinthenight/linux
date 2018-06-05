@@ -26,9 +26,9 @@ struct module;
  * attribute is still left for other arches.
  */
 struct attribute {
-	const char		*name;
-	struct module		*owner;
-	mode_t			mode;
+	const char			*name;		/* 属性名，也是 sysfs文件名*/
+	struct module		*owner;		
+	mode_t				mode;		/* sysfs文件权限*/
 };
 
 struct attribute_group {
@@ -75,8 +75,8 @@ struct bin_attribute {
 };
 
 struct sysfs_ops {
-	ssize_t	(*show)(struct kobject *, struct attribute *,char *);
-	ssize_t	(*store)(struct kobject *,struct attribute *,const char *, size_t);
+	ssize_t	(*show)(struct kobject *, struct attribute *,char *);				/*attr读到用户空间buf*/
+	ssize_t	(*store)(struct kobject *,struct attribute *,const char *, size_t); 
 };
 
 struct sysfs_dirent;

@@ -61,8 +61,8 @@ void kref_get(struct kref *kref)
  */
 int kref_put(struct kref *kref, void (*release)(struct kref *kref))
 {
-	WARN_ON(release == NULL);
-	WARN_ON(release == (void (*)(struct kref *))kfree);
+	WARN_ON(release == NULL);							/* 析构函数必须不为 NULL */
+	WARN_ON(release == (void (*)(struct kref *))kfree);/* 析构函数必须不为 kfree */
 
 	if (atomic_dec_and_test(&kref->refcount)) {
 		release(kref);
