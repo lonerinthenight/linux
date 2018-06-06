@@ -1076,7 +1076,7 @@ struct input_dev {
 	struct input_id id;
 
 	unsigned long evbit[BITS_TO_LONGS(EV_CNT)];
-	unsigned long keybit[BITS_TO_LONGS(KEY_CNT)];
+	unsigned long keybit[BITS_TO_LONGS(KEY_CNT)];/*支持的按键的keycode值 对应的bitmap（如该键盘支持Enter键（keycode为“0x1C”），则keybit的bit_0x1C被置1）*/
 	unsigned long relbit[BITS_TO_LONGS(REL_CNT)];
 	unsigned long absbit[BITS_TO_LONGS(ABS_CNT)];
 	unsigned long mscbit[BITS_TO_LONGS(MSC_CNT)];

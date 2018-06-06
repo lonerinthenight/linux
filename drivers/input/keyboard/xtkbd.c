@@ -3,7 +3,9 @@
  */
 
 /*
- * XT keyboard driver for Linux
+ * PS2 XT("set 1" scancodes) keyboard driver for Linux. 
+	1. 大部分按键用1 byte表示： bit6-0 表示按键，bit7高电平为松开按键、低电平为按下按键
+	2. 偶尔用2-3bytes表示，如“小键盘Enter” 为“E0 1C”（主键盘Enter为“1C”）
  */
 
 /*
@@ -40,8 +42,8 @@ MODULE_LICENSE("GPL");
 
 #define XTKBD_EMUL0	0xe0
 #define XTKBD_EMUL1	0xe1
-#define XTKBD_KEY	0x7f
-#define XTKBD_RELEASE	0x80
+#define XTKBD_KEY	0x7f		/*1 byte表示： bit6-0 表示按键*/
+#define XTKBD_RELEASE	0x80	/*1 byte表示： bit7高电平为松开按键、低电平为按下按键*/
 
 static unsigned char xtkbd_keycode[256] = {
 	  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,

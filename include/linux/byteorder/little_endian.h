@@ -2,7 +2,7 @@
 #define _LINUX_BYTEORDER_LITTLE_ENDIAN_H
 
 #ifndef __LITTLE_ENDIAN
-#define __LITTLE_ENDIAN 1234
+#define __LITTLE_ENDIAN 1234 /*intel x86字节顺序：小尾端*/
 #endif
 #ifndef __LITTLE_ENDIAN_BITFIELD
 #define __LITTLE_ENDIAN_BITFIELD

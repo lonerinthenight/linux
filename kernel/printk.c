@@ -49,7 +49,7 @@ void asmlinkage __attribute__((weak)) early_printk(const char *fmt, ...)
 {
 }
 
-#define __LOG_BUF_LEN	(1 << CONFIG_LOG_BUF_SHIFT)
+#define __LOG_BUF_LEN	(1 << CONFIG_LOG_BUF_SHIFT)	
 
 /* printk's without a loglevel use this.. */
 #define DEFAULT_MESSAGE_LOGLEVEL 4 /* KERN_WARNING */
@@ -138,10 +138,14 @@ EXPORT_SYMBOL(console_set_on_cmdline);
 static int console_may_schedule;
 
 #ifdef CONFIG_PRINTK
-
+/* 0. printk()，输出到log_buf[]（暂存）
+   1. log_buf[] -> klogd（/proc/kmsg或syslog()系统调用。阻塞，有内核消息时被唤醒）.
+   2. klogd -> syslogd.
+   3. syslogd，“永久存储” 到  /var/log/*等文件 (/etc/syslog.conf, 升级版rsyslogd). 
+   参考：https://blog.csdn.net/needle2/article/details/6826523 */
 static char __log_buf[__LOG_BUF_LEN];
-static char *log_buf = __log_buf;
-static int log_buf_len = __LOG_BUF_LEN;
+static char *log_buf = __log_buf;		/* log_buf：“环形队列”，printk()输出到此 */
+static int log_buf_len = __LOG_BUF_LEN; /* log_buf长度：一般16KB */
 static unsigned logged_chars; /* Number of chars produced since last read+clear operation */
 
 #ifdef CONFIG_KEXEC

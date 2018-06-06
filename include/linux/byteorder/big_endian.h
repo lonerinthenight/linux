@@ -2,7 +2,7 @@
 #define _LINUX_BYTEORDER_BIG_ENDIAN_H
 
 #ifndef __BIG_ENDIAN
-#define __BIG_ENDIAN 4321
+#define __BIG_ENDIAN 4321	/*非intel_x86字节顺序：大尾端*/
 #endif
 #ifndef __BIG_ENDIAN_BITFIELD
 #define __BIG_ENDIAN_BITFIELD

@@ -200,7 +200,7 @@ static void dump_backtrace(struct pt_regs *regs, struct task_struct *tsk)
 }
 #endif
 
-void dump_stack(void)
+void dump_stack(void) /*dump 寄存器状态、函数回溯信息*/
 {
 	dump_backtrace(NULL, NULL);
 }

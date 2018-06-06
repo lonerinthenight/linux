@@ -30,7 +30,7 @@
 #include <asm/processor-flags.h>
 
 /* Useful macros */
-#define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2*!!(condition)]))
+#define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2*!!(condition)]))  /*利用“数组Size非负”实现*/
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(*(x)))
 

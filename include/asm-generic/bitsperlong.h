@@ -9,7 +9,10 @@
  * to decide it, but rather check a compiler provided macro.
  */
 #ifndef __BITS_PER_LONG
-#define __BITS_PER_LONG 32
+#define __BITS_PER_LONG 32	/* 不同架构 “默认系统字长(bits_per_long)”=32 */
+							/* 始终 bits_per_char =8, bits_per_int = 32；
+							   对于32位系统，bits_per_long = 32；一般记为 ILP32
+							   对于64位系统，bits_per_long = 64；一般记为             LP64 */
 #endif
 
 #ifdef __KERNEL__
