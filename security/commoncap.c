@@ -1,5 +1,6 @@
 /* Common capabilities, needed by capability.o and root_plug.o
- *
+ *  “缺省安全模块"：缺省的“传统UNIX超级用户机制”。
+    我们可以重新实现这些钩子函数来满足自己的安全策略。
  *	This program is free software; you can redistribute it and/or modify
  *	it under the terms of the GNU General Public License as published by
  *	the Free Software Foundation; either version 2 of the License, or
@@ -79,6 +80,7 @@ EXPORT_SYMBOL(cap_netlink_recv);
  * cap_has_capability() returns 0 when a task has a capability, but the
  * kernel's capable() and has_capability() returns 1 for this case.
  */
+ /* "原始安全模块"的安全检查接口 */
 int cap_capable(struct task_struct *tsk, const struct cred *cred, int cap,
 		int audit)
 {

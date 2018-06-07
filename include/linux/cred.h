@@ -143,7 +143,7 @@ struct cred {
 	struct thread_group_cred *tgcred; /* thread-group shared credentials */
 #endif
 #ifdef CONFIG_SECURITY
-	void		*security;	/* subjective LSM security */
+	void		*security;	/* subjective LSM security,指向 task_security_struct */
 #endif
 	struct user_struct *user;	/* real user ID subscription */
 	struct group_info *group_info;	/* supplementary groups for euid/fsgid */

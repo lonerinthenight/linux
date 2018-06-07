@@ -85,17 +85,17 @@ struct ipc_kludge {
 /* used by in-kernel data structures */
 struct kern_ipc_perm
 {
-	spinlock_t	lock;
-	int		deleted;
-	int		id;
-	key_t		key;
-	uid_t		uid;
-	gid_t		gid;
-	uid_t		cuid;
-	gid_t		cgid;
-	mode_t		mode; 
+	spinlock_t		lock;
+	int				deleted;
+	int				id;
+	key_t			key;
+	uid_t			uid;
+	gid_t			gid;
+	uid_t			cuid;
+	gid_t			cgid; /*创建者gid*/
+	mode_t			mode; 
 	unsigned long	seq;
-	void		*security;
+	void			*security;/*指向 ipc_security_struct */
 };
 
 #endif /* __KERNEL__ */

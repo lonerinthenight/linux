@@ -1009,7 +1009,7 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 				current->signal->flags & SIGNAL_UNKILLABLE)
 		return ERR_PTR(-EINVAL);
 
-	retval = security_task_create(clone_flags);
+	retval = security_task_create(clone_flags);/* 申请fork进程的权限：0-授权，其它-拒绝*/
 	if (retval)
 		goto fork_out;
 

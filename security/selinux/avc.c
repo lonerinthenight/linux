@@ -797,7 +797,8 @@ int avc_has_perm_noaudit(u32 ssid, u32 tsid,
 
 	rcu_read_lock();
 
-	node = avc_lookup(ssid, tsid, tclass);
+	/* 在hash表（avc_cache.slots[AVC_CACHE_SLOTS]），搜索<ssid,tsid,tclass>指定的avc_node：  */
+	node = avc_lookup(ssid, tsid, tclass); 
 	if (!node) {
 		rcu_read_unlock();
 
@@ -805,7 +806,7 @@ int avc_has_perm_noaudit(u32 ssid, u32 tsid,
 			avd = in_avd;
 		else
 			avd = &avd_entry;
-
+		/* 因hash表中未找到 <ssid,tsid,tclass>指定的avc_node，故重新生成avc_node */
 		rc = security_compute_av(ssid, tsid, tclass, requested, avd);
 		if (rc)
 			goto out;
@@ -820,6 +821,7 @@ int avc_has_perm_noaudit(u32 ssid, u32 tsid,
 	denied = requested & ~(avd->allowed);
 
 	if (denied) {
+		/* <ssid,tsid,tclass>指定的avc_node 拒绝 requested权限请求 */
 		if (flags & AVC_STRICT)
 			rc = -EACCES;
 		else if (!selinux_enforcing || (avd->flags & AVD_FLAGS_PERMISSIVE))
@@ -846,8 +848,9 @@ out:
  * for the SID pair (@ssid, @tsid), interpreting the permissions
  * based on @tclass, and call the security server on a cache miss to obtain
  * a new decision and add it to the cache.  Audit the granting or denial of
- * permissions in accordance with the policy.  Return %0 if all @requested
- * permissions are granted, -%EACCES if any permissions are denied, or
+ * permissions in accordance with the policy.  
+ * Return %0 if all @requested permissions are granted, 
+ * -%EACCES if any permissions are denied, or
  * another -errno upon other errors.
  */
 int avc_has_perm(u32 ssid, u32 tsid, u16 tclass,
@@ -858,7 +861,7 @@ int avc_has_perm(u32 ssid, u32 tsid, u16 tclass,
 
 	rc = avc_has_perm_noaudit(ssid, tsid, tclass, requested, 0, &avd);
 	avc_audit(ssid, tsid, tclass, requested, &avd, rc, auditdata);
-	return rc;
+	return rc;//0：授权
 }
 
 u32 avc_policy_seqno(void)

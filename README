@@ -2,7 +2,7 @@
 
 1. OS所做的一切都是为了“tasks”服务（稳妥地干完活）。
 2. OS为N个task虚拟出N个CPU、N个RAM，制造出每个task独享CPU和RAM的假象，以使每个task开开心心干活。
-3. OS通过thread_info头儿，监控着tasks老老实实干完活；根据轻重缓急调度tasks。
+3. OS提着thread_info头儿，监控着tasks老老实实干完活；根据轻重缓急调度tasks。
 4. 新版本Linux，增加了I/O虚拟化。
 5. OS只不过是上帝的代言人。
 

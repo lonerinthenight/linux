@@ -9,6 +9,26 @@
  *	it under the terms of the GNU General Public License as published by
  *	the Free Software Foundation; either version 2 of the License, or
  *	(at your option) any later version.
+ 1. 常见“安全策略”：
+ 	DAC:自由访问控制：主体设定访问权限、客体设定被访问权限、对比主体和客体是否一致（如linux文件）
+ 	MAC:强制访问控制（相对DAC，细粒度、最小特权），
+ 	RBAC：
+	(rootplug_init);
+	(tomoyo_init);
+	(selinux_init);
+	(smack_init);     
+	DTE linux
+	openwall
+	POSIX.1e capabilities
+	LIDS：入侵预防（通过“描述进程能访问哪些问题”实现）
+ 2. LSM的访问控制：用户进程 -> 系统库（libc等） -> system_call -> ... -> LSM Hook -> 底层操作，例如：
+ 	usr_app 
+ 		|--> fork() 
+ 			 |--> sys_fork() --> do_fork() --> copy_process() 
+ 			 	  |--> security_task_create() --> security_ops->task_create()
+ 					   |--> for selinux: selinux_task_create()
+ 					   
+ 					   |--> for rootplug_init,tomoyo_init,smack_init: 没实现
  */
 
 #include <linux/capability.h>
@@ -24,7 +44,7 @@ static __initdata char chosen_lsm[SECURITY_NAME_MAX + 1];
 extern struct security_operations default_security_ops;
 extern void security_fixup_ops(struct security_operations *ops);
 
-struct security_operations *security_ops;	/* Initialized to NULL */
+struct security_operations *security_ops;	/* 系统“安全模块”指针，Initialized to NULL */
 
 static inline int verify(struct security_operations *ops)
 {
@@ -39,6 +59,12 @@ static void __init do_security_initcalls(void)
 {
 	initcall_t *call;
 	call = __security_initcall_start;
+	/* 调用每个“安全模块”：
+		security_initcall(rootplug_init);
+		security_initcall(tomoyo_init);
+		security_initcall(selinux_init);
+		security_initcall(smack_init);
+	*/
 	while (call < __security_initcall_end) {
 		(*call) ();
 		call++;
@@ -46,18 +72,27 @@ static void __init do_security_initcalls(void)
 }
 
 /**
- * security_init - initializes the security framework
+ * security_init - initializes the security framework（LSM框架）
  *
- * This should be called early in the kernel initialization sequence.
+ * This should be called early in the kernel initialization sequence（start_kernel()里）.
+ 	详见：https://wenku.baidu.com/view/df89fe235901020207409c49.html?sxts=1528341018922&pn=1
  */
 int __init security_init(void)
 {
 	printk(KERN_INFO "Security Framework initialized\n");
 
-	security_fixup_ops(&default_security_ops);
-	security_ops = &default_security_ops;
-	do_security_initcalls();
-
+	security_fixup_ops(&default_security_ops);	/* 初始化 “缺省安全模块”（UNIX用户特权机制）*/
+	security_ops = &default_security_ops;		/* 使用 “缺省安全模块” */
+	do_security_initcalls();					/* 注册 自己的“安全模块”，支持：
+													security_initcall(rootplug_init);
+													security_initcall(tomoyo_init);
+													security_initcall(selinux_init);
+													security_initcall(smack_init);     
+													DTE linux
+													openwall
+													POSIX.1e capabilities
+													LIDS：入侵预防（通过“描述进程能访问哪些问题”实现）
+													*/
 	return 0;
 }
 
@@ -106,6 +141,7 @@ int __init security_module_enable(struct security_operations *ops)
  * If there is already a security module registered with the kernel,
  * an error will be returned.  Otherwise %0 is returned on success.
  */
+ /* 向“LSM框架”注册一个安全模块（如selinux、smack、tomoyo、rootplug等）*/
 int register_security(struct security_operations *ops)
 {
 	if (verify(ops)) {
@@ -114,7 +150,8 @@ int register_security(struct security_operations *ops)
 		return -EINVAL;
 	}
 
-	if (security_ops != &default_security_ops)
+	/* 若已注册了“非缺省安全模块”，则直接返回（仅“第一个注册的安全模块有效”） */
+	if (security_ops != &default_security_ops)	
 		return -EAGAIN;
 
 	security_ops = ops;

@@ -290,7 +290,7 @@ struct sock {
 	__u32			sk_sndmsg_off;
 	int			sk_write_pending;
 #ifdef CONFIG_SECURITY
-	void			*sk_security;
+	void			*sk_security;	/*指向 sk_security_struct*/
 #endif
 	__u32			sk_mark;
 	/* XXX 4 bytes hole on 64 bit */

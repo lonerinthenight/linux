@@ -303,9 +303,11 @@ static int __init tomoyo_init(void)
 
 	if (!security_module_enable(&tomoyo_security_ops))
 		return 0;
-	/* register ourselves with the security framework */
-	if (register_security(&tomoyo_security_ops))
+	
+	/* 向LSM Framework 注册“tomoyo安全模块” */
+	if (register_security(&tomoyo_security_ops)) 
 		panic("Failure registering TOMOYO Linux");
+	
 	printk(KERN_INFO "TOMOYO Linux initialized\n");
 	cred->security = &tomoyo_kernel_domain;
 	tomoyo_realpath_init();

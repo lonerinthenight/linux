@@ -1419,6 +1419,7 @@ static inline void security_free_mnt_opts(struct security_mnt_opts *opts)
  *	@ctxlen points to the place to put the length of @ctx.
  * This is the main security structure.
  */
+ /*安全钩子函数：管理内核对象安全域、仲裁内核对象的访问*/
 struct security_operations {
 	char name[SECURITY_NAME_MAX + 1];
 
@@ -2348,7 +2349,7 @@ static inline int security_dentry_open(struct file *file,
 
 static inline int security_task_create(unsigned long clone_flags)
 {
-	return 0;
+	return 0; //0-授权
 }
 
 static inline int security_cred_alloc_blank(struct cred *cred, gfp_t gfp)

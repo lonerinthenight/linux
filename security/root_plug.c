@@ -76,8 +76,8 @@ static struct security_operations rootplug_security_ops = {
 
 static int __init rootplug_init (void)
 {
-	/* register ourselves with the security framework */
-	if (register_security (&rootplug_security_ops)) {
+	/* 向LSM Framework 注册 “rootplug安全模块” */
+	if (register_security (&rootplug_security_ops)) { 
 		printk (KERN_INFO 
 			"Failure registering Root Plug module with the kernel\n");
 			return -EINVAL;

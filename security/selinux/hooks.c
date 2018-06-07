@@ -1469,9 +1469,10 @@ static int current_has_perm(const struct task_struct *tsk,
 {
 	u32 sid, tsid;
 
-	sid = current_sid();
-	tsid = task_sid(tsk);
-	return avc_has_perm(sid, tsid, SECCLASS_PROCESS, perms, NULL);
+	sid = current_sid();	/* actor  task sid */
+	tsid = task_sid(tsk);	/* target task sid */
+	return avc_has_perm(sid, tsid, SECCLASS_PROCESS/*一级权限*/, perms/*二级权限*/, NULL/*审计数据*/);
+	/*0-授权，其它-拒绝*/
 }
 
 #if CAP_LAST_CAP > 63
@@ -3355,7 +3356,7 @@ static int selinux_task_getpgid(struct task_struct *p)
 
 static int selinux_task_getsid(struct task_struct *p)
 {
-	return current_has_perm(p, PROCESS__GETSESSION);
+	return current_has_perm(p, PROCESS__GETSESSION);//0：授权
 }
 
 static void selinux_task_getsecid(struct task_struct *p, u32 *secid)
@@ -5450,6 +5451,8 @@ static int selinux_key_getsecurity(struct key *key, char **_buffer)
 
 #endif
 
+/* 基于“角色”的访问控制，
+*/
 static struct security_operations selinux_ops = {
 	.name =				"selinux",
 
@@ -5467,11 +5470,13 @@ static struct security_operations selinux_ops = {
 	.netlink_send =			selinux_netlink_send,
 	.netlink_recv =			selinux_netlink_recv,
 
+	 /*程序装载类 hook*/
 	.bprm_set_creds =		selinux_bprm_set_creds,
 	.bprm_committing_creds =	selinux_bprm_committing_creds,
 	.bprm_committed_creds =		selinux_bprm_committed_creds,
 	.bprm_secureexec =		selinux_bprm_secureexec,
 
+	/*文件系统 super_block hook*/
 	.sb_alloc_security =		selinux_sb_alloc_security,
 	.sb_free_security =		selinux_sb_free_security,
 	.sb_copy_data =			selinux_sb_copy_data,
@@ -5484,7 +5489,7 @@ static struct security_operations selinux_ops = {
 	.sb_clone_mnt_opts =		selinux_sb_clone_mnt_opts,
 	.sb_parse_opts_str = 		selinux_parse_opts_str,
 
-
+	 /*inode hook*/
 	.inode_alloc_security =		selinux_inode_alloc_security,
 	.inode_free_security =		selinux_inode_free_security,
 	.inode_init_security =		selinux_inode_init_security,
@@ -5511,6 +5516,7 @@ static struct security_operations selinux_ops = {
 	.inode_listsecurity =		selinux_inode_listsecurity,
 	.inode_getsecid =		selinux_inode_getsecid,
 
+	 /*file hook*/
 	.file_permission =		selinux_file_permission,
 	.file_alloc_security =		selinux_file_alloc_security,
 	.file_free_security =		selinux_file_free_security,
@@ -5525,6 +5531,7 @@ static struct security_operations selinux_ops = {
 
 	.dentry_open =			selinux_dentry_open,
 
+	 /*task hook*/
 	.task_create =			selinux_task_create,
 	.cred_alloc_blank =		selinux_cred_alloc_blank,
 	.cred_free =			selinux_cred_free,
@@ -5544,10 +5551,11 @@ static struct security_operations selinux_ops = {
 	.task_setscheduler =		selinux_task_setscheduler,
 	.task_getscheduler =		selinux_task_getscheduler,
 	.task_movememory =		selinux_task_movememory,
-	.task_kill =			selinux_task_kill,
+	.task_kill =			selinux_task_kill,					
 	.task_wait =			selinux_task_wait,
 	.task_to_inode =		selinux_task_to_inode,
 
+	 /* 进程间通信类 hook */
 	.ipc_permission =		selinux_ipc_permission,
 	.ipc_getsecid =			selinux_ipc_getsecid,
 
@@ -5560,6 +5568,7 @@ static struct security_operations selinux_ops = {
 	.msg_queue_msgctl =		selinux_msg_queue_msgctl,
 	.msg_queue_msgsnd =		selinux_msg_queue_msgsnd,
 	.msg_queue_msgrcv =		selinux_msg_queue_msgrcv,
+
 
 	.shm_alloc_security =		selinux_shm_alloc_security,
 	.shm_free_security =		selinux_shm_free_security,
@@ -5588,6 +5597,7 @@ static struct security_operations selinux_ops = {
 	.unix_stream_connect =		selinux_socket_unix_stream_connect,
 	.unix_may_send =		selinux_socket_unix_may_send,
 
+	/* 网络 hook*/
 	.socket_create =		selinux_socket_create,
 	.socket_post_create =		selinux_socket_post_create,
 	.socket_bind =			selinux_socket_bind,
@@ -5632,7 +5642,7 @@ static struct security_operations selinux_ops = {
 
 #ifdef CONFIG_KEYS
 	.key_alloc =			selinux_key_alloc,
-	.key_free =			selinux_key_free,
+	.key_free =				selinux_key_free,
 	.key_permission =		selinux_key_permission,
 	.key_getsecurity =		selinux_key_getsecurity,
 #endif
@@ -5648,28 +5658,37 @@ static struct security_operations selinux_ops = {
 static __init int selinux_init(void)
 {
 	if (!security_module_enable(&selinux_ops)) {
+		/* 用户选择了除“selinux”外的安全模块 */
 		selinux_enabled = 0;
 		return 0;
 	}
 
 	if (!selinux_enabled) {
+		/* 选择了“selinux”，却被Disabled */
 		printk(KERN_INFO "SELinux:  Disabled at boot.\n");
 		return 0;
 	}
 
 	printk(KERN_INFO "SELinux:  Initializing.\n");
 
-	/* Set the security state for the initial task. */
+	/* 初始化“init进程”的 real_cred.security（osid/sid = SECINITSID_KERNEL）*/
 	cred_init_security();
 
 	sel_inode_cache = kmem_cache_create("selinux_inode_security",
 					    sizeof(struct inode_security_struct),
 					    0, SLAB_PANIC, NULL);
-	avc_init();
+	
+	/* 初始化kernel Access Vector Cache（avc_cache{}、avc_node{}）*/
+	avc_init(); 
 
+	/* secondary_ops 指向 “缺省安全模块”（缺省的“传统UNIX超级用户机制”）
+	   security_ops  指向 “新注册的安全模块”
+	*/
 	secondary_ops = security_ops;
 	if (!secondary_ops)
 		panic("SELinux: No initial security operations\n");
+
+	/* 向LSM Framework 注册“selinux安全模块”：security_ops = selinux_ops */
 	if (register_security(&selinux_ops))
 		panic("SELinux: Unable to register with kernel.\n");
 

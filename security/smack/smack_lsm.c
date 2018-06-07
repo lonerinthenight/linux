@@ -3251,7 +3251,7 @@ static __init int smack_init(void)
 	/*
 	 * Register with LSM
 	 */
-	if (register_security(&smack_ops))
+	if (register_security(&smack_ops)) /* LinuxSecurityModule注册“smack安全模块” */
 		panic("smack: Unable to register with kernel.\n");
 
 	return 0;

@@ -122,13 +122,13 @@ static inline unsigned long is_key_possessed(const key_ref_t key_ref)
  *   - Kerberos TGTs and tickets
  */
 struct key {
-	atomic_t		usage;		/* number of references */
+	atomic_t			usage;		/* number of references */
 	key_serial_t		serial;		/* key serial number */
 	struct rb_node		serial_node;
 	struct key_type		*type;		/* type of key */
 	struct rw_semaphore	sem;		/* change vs change sem */
 	struct key_user		*user;		/* owner of this key */
-	void			*security;	/* security data for this key */
+	void				*security;	/* 指向   key_security_struct  */
 	union {
 		time_t		expiry;		/* time at which key expires (or 0) */
 		time_t		revoked_at;	/* time at which key was revoked */

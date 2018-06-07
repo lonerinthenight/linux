@@ -121,7 +121,7 @@ struct file *get_empty_filp(void)
 		goto fail;
 
 	percpu_counter_inc(&nr_files);
-	if (security_file_alloc(f))
+	if (security_file_alloc(f))	/*申请创建文件：0-授权，其它-拒绝*/
 		goto fail_sec;
 
 	INIT_LIST_HEAD(&f->f_u.fu_list);

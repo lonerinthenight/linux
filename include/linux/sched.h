@@ -1342,19 +1342,18 @@ struct task_struct {
 	struct list_head cpu_timers[3];
 
 /* process credentials */
-	const struct cred *real_cred;	/* objective and real subjective task
-					 * credentials (COW) */
-	const struct cred *cred;	/* effective (overridable) subjective task
-					 * credentials (COW) */
-	struct mutex cred_guard_mutex;	/* guard against foreign influences on
-					 * credential calculations
-					 * (notably. ptrace) */
+	const struct cred *real_cred;			/* objective and real subjective task credentials (COW) */
+	const struct cred *cred;				/* effective (overridable) subjective task credentials (COW) */
+	struct mutex cred_guard_mutex;			/* guard against foreign influences on credential calculations
+					 				 			(notably. ptrace) */
 	struct cred *replacement_session_keyring; /* for KEYCTL_SESSION_TO_PARENT */
+
 
 	char comm[TASK_COMM_LEN]; /* executable name excluding path
 				     - access with [gs]et_task_comm (which lock
 				       it with task_lock())
 				     - initialized normally by flush_old_exec */
+
 /* file system info */
 	int link_count, total_link_count;
 #ifdef CONFIG_SYSVIPC

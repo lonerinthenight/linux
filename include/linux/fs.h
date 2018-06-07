@@ -785,7 +785,7 @@ struct inode {
 
 	atomic_t		i_writecount;
 #ifdef CONFIG_SECURITY
-	void			*i_security;
+	void			*i_security;	/*指向 inode_security_struct*/
 #endif
 #ifdef CONFIG_FS_POSIX_ACL
 	struct posix_acl	*i_acl;
@@ -939,7 +939,7 @@ struct file {
 
 	u64			f_version;
 #ifdef CONFIG_SECURITY
-	void			*f_security;
+	void			*f_security;	/*指向 file_security_struct */
 #endif
 	/* needed for tty driver, and maybe others */
 	void			*private_data;
@@ -1344,7 +1344,7 @@ struct super_block {
 	int			s_need_sync;
 	atomic_t		s_active;
 #ifdef CONFIG_SECURITY
-	void                    *s_security;
+	void                    *s_security;	/*指向 superblock_security_struct */
 #endif
 	struct xattr_handler	**s_xattr;
 

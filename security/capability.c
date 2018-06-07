@@ -890,6 +890,8 @@ static void cap_audit_rule_free(void *lsmrule)
 }
 #endif /* CONFIG_AUDIT */
 
+/*  “缺省安全模块"钩子函数们：缺省的“传统UNIX超级用户机制”。
+    我们可以重新实现这些钩子函数来满足自己的安全策略。*/
 struct security_operations default_security_ops = {
 	.name	= "default",
 };

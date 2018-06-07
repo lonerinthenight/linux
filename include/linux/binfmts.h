@@ -37,10 +37,10 @@ struct linux_binprm{
 	unsigned long p; /* current top of mem */
 	unsigned int
 		cred_prepared:1,/* true if creds already prepared (multiple
-				 * preps happen for interpreters) */
+				 		 * preps happen for interpreters) */
 		cap_effective:1;/* true if has elevated effective capabilities,
-				 * false if not; except for init which inherits
-				 * its parent's caps anyway */
+						 * false if not; except for init which inherits
+				 		 * its parent's caps anyway */
 #ifdef __alpha__
 	unsigned int taso:1;
 #endif
@@ -52,8 +52,8 @@ struct linux_binprm{
 	int argc, envc;
 	char * filename;	/* Name of binary as seen by procps */
 	char * interp;		/* Name of the binary really executed. Most
-				   of the time same as filename, but could be
-				   different for binfmt_{misc,script} */
+				   		   of the time same as filename, but could be
+				   		   different for binfmt_{misc,script} */
 	unsigned interp_flags;
 	unsigned interp_data;
 	unsigned long loader, exec;

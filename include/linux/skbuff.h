@@ -310,13 +310,13 @@ typedef unsigned char *sk_buff_data_t;
  *	@vlan_tci: vlan tag control information
  */
 
-struct sk_buff {
+struct sk_buff {/*net layer间传递数据*/
 	/* These two members must be first. */
 	struct sk_buff		*next;
 	struct sk_buff		*prev;
 
-	struct sock		*sk;
-	ktime_t			tstamp;
+	struct sock			*sk;
+	ktime_t				tstamp;
 	struct net_device	*dev;
 
 	unsigned long		_skb_dst;
@@ -329,12 +329,10 @@ struct sk_buff {
 	 * want to keep them across layers you have to do a skb_clone()
 	 * first. This is owned by whoever has the skb queued ATM.
 	 */
-	char			cb[48];
+	char				cb[48];
 
-	unsigned int		len,
-				data_len;
-	__u16			mac_len,
-				hdr_len;
+	unsigned int		len, data_len;
+	__u16				mac_len, hdr_len;
 	union {
 		__wsum		csum;
 		struct {
@@ -343,17 +341,20 @@ struct sk_buff {
 		};
 	};
 	__u32			priority;
+	
 	kmemcheck_bitfield_begin(flags1);
 	__u8			local_df:1,
-				cloned:1,
-				ip_summed:2,
-				nohdr:1,
-				nfctinfo:3;
+					cloned:1,
+					ip_summed:2,
+					nohdr:1,
+					nfctinfo:3;
+	
 	__u8			pkt_type:3,
-				fclone:2,
-				ipvs_property:1,
-				peeked:1,
-				nf_trace:1;
+					fclone:2,
+					ipvs_property:1,
+					peeked:1,
+					nf_trace:1;
+	
 	__be16			protocol:16;
 	kmemcheck_bitfield_end(flags1);
 
@@ -387,12 +388,12 @@ struct sk_buff {
 	dma_cookie_t		dma_cookie;
 #endif
 #ifdef CONFIG_NETWORK_SECMARK
-	__u32			secmark;
+	__u32				secmark;
 #endif
 
-	__u32			mark;
+	__u32				mark;
 
-	__u16			vlan_tci;
+	__u16				vlan_tci;
 
 	sk_buff_data_t		transport_header;
 	sk_buff_data_t		network_header;
@@ -400,10 +401,9 @@ struct sk_buff {
 	/* These elements must be at the end, see alloc_skb() for details.  */
 	sk_buff_data_t		tail;
 	sk_buff_data_t		end;
-	unsigned char		*head,
-				*data;
+	unsigned char		*head, *data;
 	unsigned int		truesize;
-	atomic_t		users;
+	atomic_t			users;
 };
 
 #ifdef __KERNEL__

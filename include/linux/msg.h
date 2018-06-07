@@ -76,11 +76,11 @@ struct msginfo {
 
 /* one msg_msg structure for each message */
 struct msg_msg {
-	struct list_head m_list; 
-	long  m_type;          
-	int m_ts;           /* message text size */
-	struct msg_msgseg* next;
-	void *security;
+	struct list_head 	m_list; 
+	long  				m_type;          
+	int 				m_ts;             /* message text size */
+	struct 				msg_msgseg* next;
+	void 				*security;		 /* 指向 msg_security_struct */
 	/* the actual message follows immediately */
 };
 
