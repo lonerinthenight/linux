@@ -3,7 +3,7 @@
 #define _SELINUX_FLASK_H_
 
 /*
- * Security object class definitions
+ * Security object class definitions 客体权限列别（一级权限）
  */
 #define SECCLASS_SECURITY                                1
 #define SECCLASS_PROCESS                                 2

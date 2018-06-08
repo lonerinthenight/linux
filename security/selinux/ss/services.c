@@ -1,5 +1,5 @@
 /*
- * Implementation of the security services.
+ * Implementation of the Security Services（安全服务器）.
  *
  * Authors : Stephen Smalley, <sds@epoch.ncsc.mil>
  *	     James Morris <jmorris@redhat.com>
@@ -1706,7 +1706,7 @@ static int security_preserve_bools(struct policydb *p);
  * This function will flush the access vector cache after
  * loading the new policy.
  */
-int security_load_policy(void *data, size_t len)
+int security_load_policy(void *data/*来自策略BIN文件*/, size_t len)
 {
 	struct policydb oldpolicydb, newpolicydb;
 	struct sidtab oldsidtab, newsidtab;

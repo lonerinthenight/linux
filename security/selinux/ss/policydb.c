@@ -369,10 +369,11 @@ static int policydb_index_classes(struct policydb *p)
 		rc = -ENOMEM;
 		goto out;
 	}
-
+	/* p->p_common_val_to_name[p->p_commons_hashtable.val] = "key" */
 	rc = hashtab_map(p->p_commons.table, common_index, p);
 	if (rc)
 		goto out;
+
 
 	p->class_val_to_struct =
 		kmalloc(p->p_classes.nprim * sizeof(*(p->class_val_to_struct)), GFP_KERNEL);
@@ -381,14 +382,15 @@ static int policydb_index_classes(struct policydb *p)
 		goto out;
 	}
 
+	/* p->p_class_val_to_name[p->p_classes_hashtable.val] = "key" */
 	p->p_class_val_to_name =
 		kmalloc(p->p_classes.nprim * sizeof(char *), GFP_KERNEL);
 	if (!p->p_class_val_to_name) {
 		rc = -ENOMEM;
 		goto out;
 	}
-
 	rc = hashtab_map(p->p_classes.table, class_index, p);
+	
 out:
 	return rc;
 }
@@ -943,20 +945,20 @@ static int perm_read(struct policydb *p, struct hashtab *h, void *fp)
 	if (rc < 0)
 		goto bad;
 
-	len = le32_to_cpu(buf[0]);
-	perdatum->value = le32_to_cpu(buf[1]);
+	len = le32_to_cpu(buf[0]);				/* 1. 获取 第二级哈希表节点 table.key.len*/
+	perdatum->value = le32_to_cpu(buf[1]);	/* 2. 获取 第二级哈希表节点 table.value */
 
 	key = kmalloc(len + 1, GFP_KERNEL);
 	if (!key) {
 		rc = -ENOMEM;
 		goto bad;
 	}
-	rc = next_entry(key, fp, len);
+	rc = next_entry(key, fp, len);			/* 3. 获取 第二级哈希表节点 table.key*/
 	if (rc < 0)
 		goto bad;
 	key[len] = '\0';
 
-	rc = hashtab_insert(h, key, perdatum);
+	rc = hashtab_insert(h, key, perdatum);	/* 4. 节点 插入 “第二级哈希表” */
 	if (rc)
 		goto bad;
 out:
@@ -985,14 +987,18 @@ static int common_read(struct policydb *p, struct hashtab *h, void *fp)
 		goto bad;
 
 	len = le32_to_cpu(buf[0]);
-	comdatum->value = le32_to_cpu(buf[1]);
 
+	/*2.1 获取 p_commons_hash_table 的节点： <, comdatum(value、nprim)> */
+	comdatum->value = le32_to_cpu(buf[1]);
 	rc = symtab_init(&comdatum->permissions, PERM_SYMTAB_SIZE);
 	if (rc)
 		goto bad;
 	comdatum->permissions.nprim = le32_to_cpu(buf[2]);
+
+	/*2.2 获取 p_commons_hash_table 的节点： <, comdatum(permission_hash_table length)> */
 	nel = le32_to_cpu(buf[3]);
 
+	/*1. 获取 p_commons_hash_table 的节点： <key, > */
 	key = kmalloc(len + 1, GFP_KERNEL);
 	if (!key) {
 		rc = -ENOMEM;
@@ -1003,12 +1009,14 @@ static int common_read(struct policydb *p, struct hashtab *h, void *fp)
 		goto bad;
 	key[len] = '\0';
 
+	/*2.3 获取 p_commons_hash_table 的节点： <, comdatum(permission_hash_table items)> */
 	for (i = 0; i < nel; i++) {
 		rc = perm_read(p, comdatum->permissions.table, fp);
 		if (rc)
 			goto bad;
 	}
 
+	/* 3. p_commons_hash_table 的节点 <key,comdatum> 插入 policydb->p_commons->table 哈希表*/
 	rc = hashtab_insert(h, key, comdatum);
 	if (rc)
 		goto bad;
@@ -1644,14 +1652,14 @@ extern int ss_initialized;
  * Read the configuration data from a policy database binary
  * representation file into a policy database structure.
  */
-int policydb_read(struct policydb *p, void *fp)
+int policydb_read(struct policydb *p, void *fp /* 代表 policydb BIN文件*/)
 {
 	struct role_allow *ra, *lra;
 	struct role_trans *tr, *ltr;
 	struct ocontext *l, *c, *newc;
 	struct genfs *genfs_p, *genfs, *newgenfs;
 	int i, j, rc;
-	__le32 buf[4];
+	__le32 buf[4];		/* 小尾端 存储*/
 	u32 nodebuf[8];
 	u32 len, len2, config, nprim, nel, nel2;
 	char *policydb_str;
@@ -1660,11 +1668,16 @@ int policydb_read(struct policydb *p, void *fp)
 
 	config = 0;
 
-	rc = policydb_init(p);
+	rc = policydb_init(p);/* init policydb: symtab, te_avtab, te_cond_avtab,role, ebitmap*/
 	if (rc)
 		goto out;
 
-	/* Read the magic number and string length. */
+	/* Read policy_db文件  的 the magic number and string length：
+	   POLICYDB_MAGIC、len(POLICYDB_STRING)、POLICYDB_STRING  
+	   8c ff 7c f9、
+	   08 00 00 00、
+	   SE Linux
+	   */
 	rc = next_entry(buf, fp, sizeof(u32) * 2);
 	if (rc < 0)
 		goto bad;
@@ -1707,7 +1720,11 @@ int policydb_read(struct policydb *p, void *fp)
 	kfree(policydb_str);
 	policydb_str = NULL;
 
-	/* Read the version, config, and table sizes. */
+	/* Read policy_db文件  的 version, config, and table sizes. ：
+		xx xx xx xx(policydb ver)、
+		xx xx xx xx(bit0-MLS、bit1-reject_unknown、bit2-allow_unknow)、
+		sym_num（不同类型sym的数量）、
+		ocon_num(obj context数量) 	*/
 	rc = next_entry(buf, fp, sizeof(u32)*4);
 	if (rc < 0)
 		goto bad;
@@ -1747,14 +1764,14 @@ int policydb_read(struct policydb *p, void *fp)
 	p->allow_unknown = !!(le32_to_cpu(buf[1]) & ALLOW_UNKNOWN);
 
 	if (p->policyvers >= POLICYDB_VERSION_POLCAP &&
-	    ebitmap_read(&p->policycaps, fp) != 0)
+	    ebitmap_read(&p->policycaps, fp) != 0)		/* 读取 policy_db文件  的 policycaps bitmap*/
 		goto bad;
 
 	if (p->policyvers >= POLICYDB_VERSION_PERMISSIVE &&
-	    ebitmap_read(&p->permissive_map, fp) != 0)
+	    ebitmap_read(&p->permissive_map, fp) != 0)	/* 读取 policy_db文件  的 permissive_map   bitmap*/
 		goto bad;
 
-	info = policydb_lookup_compat(p->policyvers);
+	info = policydb_lookup_compat(p->policyvers);	/*获取 object context索引*/
 	if (!info) {
 		printk(KERN_ERR "SELinux:  unable to find policy compat info "
 		       "for version %d\n", p->policyvers);
@@ -1769,15 +1786,18 @@ int policydb_read(struct policydb *p, void *fp)
 		       info->sym_num, info->ocon_num);
 		goto bad;
 	}
-
+		
+	/* 读取 policy_db文件  的 policydb.hash_symtab[]表：
+	   p_commons symtab、p_classes symtab、p_roles symtab、 p_types symtab
+	   p_users symtab、   p_bools symtab、   p_levels symtab、p_cats symtab	 */
 	for (i = 0; i < info->sym_num; i++) {
 		rc = next_entry(buf, fp, sizeof(u32)*2);
 		if (rc < 0)
 			goto bad;
-		nprim = le32_to_cpu(buf[0]);
-		nel = le32_to_cpu(buf[1]);
-		for (j = 0; j < nel; j++) {
-			rc = read_f[i](p, p->symtab[i].table, fp);
+		nprim = le32_to_cpu(buf[0]);	/* policydb.hash_symtab[].nprim */
+		nel = le32_to_cpu(buf[1]);		/* policydb.hash_symtab[].节点数量 */
+		for (j = 0; j < nel; j++) {		/* 插入 policydb.hash_symtab[] 全部节点 */
+			rc = read_f[i](p, p->symtab[i].table, fp); 
 			if (rc)
 				goto bad;
 		}
@@ -1785,16 +1805,19 @@ int policydb_read(struct policydb *p, void *fp)
 		p->symtab[i].nprim = nprim;
 	}
 
+	/* 读取 policy_db文件  的 te_avtab*/
 	rc = avtab_read(&p->te_avtab, fp, p);
 	if (rc)
 		goto bad;
 
+	/* 读取 policy_db文件  的 te_cond_avtab*/
 	if (p->policyvers >= POLICYDB_VERSION_BOOL) {
 		rc = cond_read_list(p, fp);
 		if (rc)
 			goto bad;
 	}
 
+	/*读取 policy_db文件的 role_transition们*/
 	rc = next_entry(buf, fp, sizeof(u32));
 	if (rc < 0)
 		goto bad;
@@ -1825,6 +1848,7 @@ int policydb_read(struct policydb *p, void *fp)
 		ltr = tr;
 	}
 
+	/*读取 policy_db文件的 role_allow 们*/
 	rc = next_entry(buf, fp, sizeof(u32));
 	if (rc < 0)
 		goto bad;
@@ -1853,15 +1877,17 @@ int policydb_read(struct policydb *p, void *fp)
 		lra = ra;
 	}
 
-	rc = policydb_index_classes(p);
+	
+	rc = policydb_index_classes(p); 	/* p_class; p->p_common_val_to_name[], p_class_val_to_name[] */
 	if (rc)
 		goto bad;
 
-	rc = policydb_index_others(p);
+	rc = policydb_index_others(p);		/* p_users:p_roles:p_types */
 	if (rc)
 		goto bad;
 
-	for (i = 0; i < info->ocon_num; i++) {
+	/* 读取 objects context（p_user, p_role, p_type...）*/
+	for (i = 0; i < info->ocon_num/*客体*/; i++) {
 		rc = next_entry(buf, fp, sizeof(u32));
 		if (rc < 0)
 			goto bad;
@@ -1880,16 +1906,16 @@ int policydb_read(struct policydb *p, void *fp)
 			l = c;
 			rc = -EINVAL;
 			switch (i) {
-			case OCON_ISID:
+			case OCON_ISID:		/*initial SID object context*/
 				rc = next_entry(buf, fp, sizeof(u32));
 				if (rc < 0)
 					goto bad;
 				c->sid[0] = le32_to_cpu(buf[0]);
-				rc = context_read_and_validate(&c->context[0], p, fp);
+				rc = context_read_and_validate(&c->context[0], p, fp);	/* 读取“安全上下文” */
 				if (rc)
 					goto bad;
 				break;
-			case OCON_FS:
+			case OCON_FS:		/*未labeled fs和net_if object context*/
 			case OCON_NETIF:
 				rc = next_entry(buf, fp, sizeof(u32));
 				if (rc < 0)
@@ -1911,7 +1937,7 @@ int policydb_read(struct policydb *p, void *fp)
 				if (rc)
 					goto bad;
 				break;
-			case OCON_PORT:
+			case OCON_PORT:		/*TCP/UDP端口类型 object context*/
 				rc = next_entry(buf, fp, sizeof(u32)*3);
 				if (rc < 0)
 					goto bad;
@@ -1922,7 +1948,7 @@ int policydb_read(struct policydb *p, void *fp)
 				if (rc)
 					goto bad;
 				break;
-			case OCON_NODE:
+			case OCON_NODE:			/*IPV4类型 object context*/
 				rc = next_entry(nodebuf, fp, sizeof(u32) * 2);
 				if (rc < 0)
 					goto bad;
@@ -1932,7 +1958,7 @@ int policydb_read(struct policydb *p, void *fp)
 				if (rc)
 					goto bad;
 				break;
-			case OCON_FSUSE:
+			case OCON_FSUSE:		/*fs_use类型 object context*/
 				rc = next_entry(buf, fp, sizeof(u32)*2);
 				if (rc < 0)
 					goto bad;
@@ -1953,7 +1979,7 @@ int policydb_read(struct policydb *p, void *fp)
 				if (rc)
 					goto bad;
 				break;
-			case OCON_NODE6: {
+			case OCON_NODE6: {		/*IPV6类型 object context*/
 				int k;
 
 				rc = next_entry(nodebuf, fp, sizeof(u32) * 8);
@@ -1971,6 +1997,7 @@ int policydb_read(struct policydb *p, void *fp)
 		}
 	}
 
+	/* 读取fs security contexts链表节点们 (fstype, ocontext<usr, role, type...>)*/
 	rc = next_entry(buf, fp, sizeof(u32));
 	if (rc < 0)
 		goto bad;
@@ -2073,6 +2100,7 @@ int policydb_read(struct policydb *p, void *fp)
 		}
 	}
 
+	/*读取 range_trans（s_type, t_type, t_class [sensitivity, category] [sensitivity, category]） */
 	if (p->policyvers >= POLICYDB_VERSION_MLS) {
 		int new_rangetr = p->policyvers >= POLICYDB_VERSION_RANGETRANS;
 		rc = next_entry(buf, fp, sizeof(u32));

@@ -85,6 +85,7 @@ int security_load_policy(void *data, size_t len);
 int security_policycap_supported(unsigned int req_cap);
 
 #define SEL_VEC_MAX 32
+/* 用于返回决策信息 */
 struct av_decision {
 	u32 allowed;
 	u32 auditallow;

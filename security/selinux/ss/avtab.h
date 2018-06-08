@@ -24,9 +24,9 @@
 #define _SS_AVTAB_H_
 
 struct avtab_key {
-	u16 source_type;	/* source type */
-	u16 target_type;	/* target type */
-	u16 target_class;	/* target object class */
+	u16 source_type;	/* 主体标签 source type */
+	u16 target_type;	/* 客体标签 target type */
+	u16 target_class;	/* 客体类型 target object class */
 #define AVTAB_ALLOWED     1
 #define AVTAB_AUDITALLOW  2
 #define AVTAB_AUDITDENY   4

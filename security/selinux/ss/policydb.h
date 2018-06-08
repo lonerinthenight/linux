@@ -153,7 +153,7 @@ struct ocontext {
 		u32 sclass;  /* security class for genfs */
 		u32 behavior;  /* labeling behavior for fs_use */
 	} v;
-	struct context context[2];	/* security context(s) */
+	struct context context[2];	/* security context(s): usr, role, type... */
 	u32 sid[2];	/* SID(s) */
 	struct ocontext *next;
 };
@@ -185,18 +185,18 @@ struct genfs {
 #define OCON_NODE6 6	/* IPv6 nodes */
 #define OCON_NUM   7
 
-/* The policy database */
+/* The policy database:selinux策略库 */
 struct policydb {
 	/* symbol tables */
 	struct symtab symtab[SYM_NUM];
 #define p_commons symtab[SYM_COMMONS]
 #define p_classes symtab[SYM_CLASSES]
 #define p_roles symtab[SYM_ROLES]
-#define p_types symtab[SYM_TYPES]
+#define p_types symtab[SYM_TYPES]		/* 为“主体”、“客体”分成不同组，设定不同权限类型 */
 #define p_users symtab[SYM_USERS]
 #define p_bools symtab[SYM_BOOLS]
-#define p_levels symtab[SYM_LEVELS]
-#define p_cats symtab[SYM_CATS]
+#define p_levels symtab[SYM_LEVELS]		/* 安全等级,已定义的安全等级为s0-s15,等级越来越高*/
+#define p_cats symtab[SYM_CATS]			/* CATEGORY，分类，定义的分类为c0-c1023*/
 
 	/* symbol names indexed by (value - 1) */
 	char **sym_val_to_name[SYM_NUM];
@@ -215,21 +215,18 @@ struct policydb {
 	struct user_datum **user_val_to_struct;
 	struct type_datum **type_val_to_struct;
 
-	/* type enforcement access vectors and transitions */
-	struct avtab te_avtab;
 
-	/* role transitions */
-	struct role_trans *role_tr;
+	/*Selinux核心策略*/
+	struct avtab te_avtab;/* Type Enforcement access vectors and transitions */
+	
+	struct role_trans *role_tr;/* role transitions */
 
-	/* bools indexed by (value - 1) */
-	struct cond_bool_datum **bool_val_to_struct;
-	/* type enforcement conditional access vectors and transitions */
-	struct avtab te_cond_avtab;
-	/* linked list indexing te_cond_avtab by conditional */
-	struct cond_node *cond_list;
+	struct cond_bool_datum **bool_val_to_struct;/* bools indexed by (value - 1) */
+	struct avtab te_cond_avtab;/* Type Enforcement Conditional access vectors and transitions */
+	struct cond_node *cond_list;/* linked list indexing te_cond_avtab by conditional */
 
-	/* role allows */
-	struct role_allow *role_allow;
+	
+	struct role_allow *role_allow;/* role allows */
 
 	/* security contexts of initial SIDs, unlabeled file systems,
 	   TCP or UDP port numbers, network interfaces and nodes */
@@ -243,14 +240,13 @@ struct policydb {
 	/* range transitions */
 	struct range_trans *range_tr;
 
-	/* type -> attribute reverse mapping */
-	struct ebitmap *type_attr_map;
+	struct ebitmap *type_attr_map;/* type -> attribute reverse mapping : p_types*/
 
 	struct ebitmap policycaps;
 
 	struct ebitmap permissive_map;
 
-	unsigned int policyvers;
+	unsigned int policyvers;		/*policydb 版本*/
 
 	unsigned int reject_unknown : 1;
 	unsigned int allow_unknown : 1;

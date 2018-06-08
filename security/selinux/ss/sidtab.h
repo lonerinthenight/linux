@@ -21,6 +21,7 @@ struct sidtab_node {
 
 #define SIDTAB_SIZE SIDTAB_HASH_BUCKETS
 
+/**/
 struct sidtab {
 	struct sidtab_node **htable;
 	unsigned int nel;	/* number of elements */

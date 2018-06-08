@@ -10,9 +10,12 @@
  *	the Free Software Foundation; either version 2 of the License, or
  *	(at your option) any later version.
  1. 常见“安全策略”：
- 	DAC:自由访问控制：主体设定访问权限、客体设定被访问权限、对比主体和客体是否一致（如linux文件）
- 	MAC:强制访问控制（相对DAC，细粒度、最小特权），
- 	RBAC：
+ 	Capabilities：
+ 	DAC:自由访问控制：u_rwx,g_rwx,o_rwx（如linux文件）
+ 	MAC:强制访问控制（相对DAC，细粒度些），
+ 		MCS(类别安全)：
+ 		MLS(多级安全)：
+ 	RBAC（Roles Based Access Control）：
 	(rootplug_init);
 	(tomoyo_init);
 	(selinux_init);
@@ -21,14 +24,40 @@
 	openwall
 	POSIX.1e capabilities
 	LIDS：入侵预防（通过“描述进程能访问哪些问题”实现）
- 2. LSM的访问控制：用户进程 -> 系统库（libc等） -> system_call -> ... -> LSM Hook -> 底层操作，例如：
+	
+ 2. SElinux
+	2.1 主体：进程
+	2.2 客体：被访问资源（统称文件），如普通文件、目录、端口、设备等
+	
+	2.3 Policy & Rule：
+		2.3.1 Policy：minimum（仅管控指定网络进程）、targeted（仅管控网络相关进程）、mls（管控所有进程）
+
+	2.4 Security Context：进程安全上下文、文件安全上下文（仅全部匹配才能访问）
+		2.4.1 格式为  	p_users:p_roles:p_types[ :p_levels[ :p_cats] ]
+		2.4.2 p_users:类似UID，身份认证，有三种（usr_u, system_u, root）
+		2.4.3 p_roles:类似GID，有这些（object_r<通常用于文件>, system_r, sysadm_r, staff_r, user_r）
+		2.4.4 p_types:核心，为“主体”、“客体”分成不同组，设定不同权限类型
+		2.4.5 p_levels:
+		2.4.6 p_cats:
+		
+	2.5 类型强制(TE)访问控制：sid tsid : type {permission}
+		allow user_t bin_t : file {read execute getattr};  
+		
+	2.6 Multi-Level Security（range_trans）:
+		user:role:type:sensitivity[:category,...] [-sensitivity[:category,...]]  
+
+ 	2.7 工作模式：enforcing(拒绝非法)、permissive(仅记录非法)、disabled
+
+ 	
+ 3. LSM的访问控制：用户进程 -> 系统库（libc等） -> system_call -> ... -> LSM Hook -> 底层操作，例如：
  	usr_app 
  		|--> fork() 
  			 |--> sys_fork() --> do_fork() --> copy_process() 
  			 	  |--> security_task_create() --> security_ops->task_create()
  					   |--> for selinux: selinux_task_create()
- 					   
  					   |--> for rootplug_init,tomoyo_init,smack_init: 没实现
+							|
+ 					   		|--> current_has_perm() -> avc_has_perm()
  */
 
 #include <linux/capability.h>

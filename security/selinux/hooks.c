@@ -1471,7 +1471,7 @@ static int current_has_perm(const struct task_struct *tsk,
 
 	sid = current_sid();	/* actor  task sid */
 	tsid = task_sid(tsk);	/* target task sid */
-	return avc_has_perm(sid, tsid, SECCLASS_PROCESS/*一级权限*/, perms/*二级权限*/, NULL/*审计数据*/);
+	return avc_has_perm(sid/*主体*/, tsid/*客体*/, SECCLASS_PROCESS/*一级权限*/, perms/*二级权限*/, NULL/*审计数据*/);
 	/*0-授权，其它-拒绝*/
 }
 

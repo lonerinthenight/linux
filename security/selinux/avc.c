@@ -92,8 +92,8 @@ struct avc_entry {
 
 struct avc_node {
 	struct avc_entry	ae;
-	struct hlist_node	list; /* anchored in avc_cache->slots[i] */
-	struct rcu_head		rhead;
+	struct hlist_node	list;  /* anchored in avc_cache->slots[i] */
+	struct rcu_head		rhead; /* Read Copy Update */
 };
 
 struct avc_cache {
@@ -807,7 +807,7 @@ int avc_has_perm_noaudit(u32 ssid, u32 tsid,
 		else
 			avd = &avd_entry;
 		/* 因hash表中未找到 <ssid,tsid,tclass>指定的avc_node，故重新生成avc_node */
-		rc = security_compute_av(ssid, tsid, tclass, requested, avd);
+		rc = security_compute_av(ssid, tsid, tclass, requested, avd);/*具体策略av_decision是avc_node核心成员*/
 		if (rc)
 			goto out;
 		rcu_read_lock();
@@ -859,8 +859,8 @@ int avc_has_perm(u32 ssid, u32 tsid, u16 tclass,
 	struct av_decision avd;
 	int rc;
 
-	rc = avc_has_perm_noaudit(ssid, tsid, tclass, requested, 0, &avd);
-	avc_audit(ssid, tsid, tclass, requested, &avd, rc, auditdata);
+	rc = avc_has_perm_noaudit(ssid, tsid, tclass, requested, 0, &avd);	/*权限核查*/
+	avc_audit(ssid, tsid, tclass, requested, &avd, rc, auditdata);		/*审计*/
 	return rc;//0：授权
 }
 

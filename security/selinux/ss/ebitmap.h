@@ -27,9 +27,10 @@
 struct ebitmap_node {
 	struct ebitmap_node *next;
 	unsigned long maps[EBITMAP_UNIT_NUMS];
-	u32 startbit;
+	u32 startbit;/* 本node的startbit*/
 };
 
+/*扩展bitmap：用来表示任意位的bitmap*/
 struct ebitmap {
 	struct ebitmap_node *node;	/* first node in the bitmap */
 	u32 highbit;	/* highest position in the total bitmap */

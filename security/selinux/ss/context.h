@@ -28,7 +28,7 @@ struct context {
 	u32 role;
 	u32 type;
 	u32 len;        /* length of string in bytes */
-	struct mls_range range;
+	struct mls_range range;/* 多级别安全 */
 	char *str;	/* string representation if context cannot be mapped. */
 };
 
