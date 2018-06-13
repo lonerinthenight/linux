@@ -32,7 +32,7 @@
 /*
  * Scheduling policies
  */
-#define SCHED_NORMAL		0
+#define SCHED_NORMAL	0	/* CFS 完全公平调度算法，用于调度普通进程，POSIX中叫SCHED_OTHER */
 #define SCHED_FIFO		1
 #define SCHED_RR		2
 #define SCHED_BATCH		3
@@ -1063,6 +1063,9 @@ struct sched_domain;
 #define WF_SYNC		0x01		/* waker goes to sleep after wakup */
 #define WF_FORK		0x02		/* child wakeup after fork */
 
+/*调度器们：可存在不同调度算法，调度自己范畴的进程；优先级最高的调度算法中最优的进程被调度执行
+1. CFS：完全公平调度算法，用于调度普通进程，POSIX中叫SCHED_OTHER（内核中叫 SCHED_NORMAL）。
+*/
 struct sched_class {
 	const struct sched_class *next;
 
@@ -1130,14 +1133,14 @@ struct load_weight {
  *     6 se->load.weight
  */
 struct sched_entity {
-	struct load_weight	load;		/* for load-balancing */
-	struct rb_node		run_node;
+	struct load_weight	load;			/* for load-balancing */
+	struct rb_node		run_node;		/* 钩在cfs_rq的“running task红黑树” node上 */
 	struct list_head	group_node;
 	unsigned int		on_rq;
 
-	u64			exec_start;
-	u64			sum_exec_runtime;
-	u64			vruntime;
+	u64			exec_start;				/* task 本轮调度的开始时间（ns）*/				
+	u64			sum_exec_runtime;		/* task 到本轮调度为止，共占用的时间（ns）*/
+	u64			vruntime;				/* task 规则化后的总占用时间（vruntime最小的被优先调度），由累加delta_fair得来（ 由delta经calc_delta_fair()规则化得出） */
 	u64			prev_sum_exec_runtime;
 
 	u64			last_wakeup;
@@ -1190,7 +1193,7 @@ struct sched_entity {
 	/* rq on which this entity is (to be) queued: */
 	struct cfs_rq		*cfs_rq;
 	/* rq "owned" by this entity/group: */
-	struct cfs_rq		*my_q;
+	struct cfs_rq		*my_q;		/* 若my_q = NULL，则本entity属于task */
 #endif
 };
 
@@ -1229,8 +1232,8 @@ struct task_struct {
 
 	int prio, static_prio, normal_prio;
 	unsigned int rt_priority;
-	const struct sched_class *sched_class;
-	struct sched_entity se;
+	const struct sched_class *sched_class;	/* 用于调度被task的“调度类” */
+	struct sched_entity se;					/*CFS stats for 调度实体(如 task, task-group...) */
 	struct sched_rt_entity rt;
 
 #ifdef CONFIG_PREEMPT_NOTIFIERS
@@ -1332,7 +1335,7 @@ struct task_struct {
 	cputime_t utime, stime, utimescaled, stimescaled;
 	cputime_t gtime;
 	cputime_t prev_utime, prev_stime;
-	unsigned long nvcsw, nivcsw; /* context switch counts */
+	unsigned long nvcsw, nivcsw; 		/* context switch counts */
 	struct timespec start_time; 		/* monotonic time */
 	struct timespec real_start_time;	/* boot based time */
 /* mm fault and swap info: this can arguably be seen as either mm-specific or thread-specific */

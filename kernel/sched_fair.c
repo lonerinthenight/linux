@@ -342,8 +342,8 @@ static void __enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
 	if (leftmost)
 		cfs_rq->rb_leftmost = &se->run_node;
 
-	rb_link_node(&se->run_node, parent, link);
-	rb_insert_color(&se->run_node, &cfs_rq->tasks_timeline);
+	rb_link_node(&se->run_node, parent, link);	/*新node插入rb tree*/
+	rb_insert_color(&se->run_node, &cfs_rq->tasks_timeline);	/*平衡rb tree*/
 }
 
 static void __dequeue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
@@ -358,9 +358,10 @@ static void __dequeue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
 	rb_erase(&se->run_node, &cfs_rq->tasks_timeline);
 }
 
+/*返回即将被调度的entiry（task）*/
 static struct sched_entity *__pick_next_entity(struct cfs_rq *cfs_rq)
 {
-	struct rb_node *left = cfs_rq->rb_leftmost;
+	struct rb_node *left = cfs_rq->rb_leftmost;	/* rb树key最小的节点，即vruntime最小的 task entity*/
 
 	if (!left)
 		return NULL;
@@ -482,17 +483,20 @@ __update_curr(struct cfs_rq *cfs_rq, struct sched_entity *curr,
 
 	schedstat_set(curr->exec_max, max((u64)delta_exec, curr->exec_max));
 
-	curr->sum_exec_runtime += delta_exec;
-	schedstat_add(cfs_rq, exec_clock, delta_exec);
-	delta_exec_weighted = calc_delta_fair(delta_exec, curr);
-	curr->vruntime += delta_exec_weighted;
-	update_min_vruntime(cfs_rq);
+	curr->sum_exec_runtime += delta_exec;						/* 累加“当前se”的占用时间*/
+	schedstat_add(cfs_rq, exec_clock, delta_exec);				/* 累加"整个rq"占用时间 */
+	delta_exec_weighted = calc_delta_fair(delta_exec, curr);	/* 把本轮调度占用时间delta转换成delta_fair*/
+	curr->vruntime += delta_exec_weighted;						/* 把delta_fair 累加到vruntime；vruntime最小的进程，最需要被调度*/
+	update_min_vruntime(cfs_rq);								/* 更新cfs_rq->min_vruntime*/
 }
 
+/* 选择 se.vruntime(单位ns)最小的进程，调度。
+   由“系统定时器”周期性调用。
+*/
 static void update_curr(struct cfs_rq *cfs_rq)
 {
 	struct sched_entity *curr = cfs_rq->curr;
-	u64 now = rq_of(cfs_rq)->clock;
+	u64 now = rq_of(cfs_rq)->clock;		/*从rq中获取当前时间（ns）*/
 	unsigned long delta_exec;
 
 	if (unlikely(!curr))
@@ -511,7 +515,7 @@ static void update_curr(struct cfs_rq *cfs_rq)
 	curr->exec_start = now;
 
 	if (entity_is_task(curr)) {
-		struct task_struct *curtask = task_of(curr);
+		struct task_struct *curtask = task_of(curr); /* 算出entity所属的task */
 
 		trace_sched_stat_runtime(curtask, delta_exec, curr->vruntime);
 		cpuacct_charge(curtask, delta_exec);
@@ -740,8 +744,8 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
 	se->vruntime = vruntime;
 }
 
-static void
-enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int wakeup)
+/* 新进程进入running状态时，cfs_rq内rb tree中插入新task.se*/*/
+static void enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int wakeup)
 {
 	/*
 	 * Update run-time statistics of the 'current'.
@@ -775,8 +779,8 @@ static void clear_buddies(struct cfs_rq *cfs_rq, struct sched_entity *se)
 		__clear_buddies(cfs_rq_of(se), se);
 }
 
-static void
-dequeue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int sleep)
+/* 进程堵塞或终止时，删除cfs_rq内rb tree相应节点task.se*/
+static void dequeue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int sleep)
 {
 	/*
 	 * Update run-time statistics of the 'current'.
@@ -1980,6 +1984,7 @@ unsigned int get_rr_interval_fair(struct task_struct *task)
 
 /*
  * All the scheduling class methods:
+   CFS：完全公平调度算法，用于调度普通进程，POSIX中叫SCHED_OTHER（内核中叫 SCHED_NORMAL）
  */
 static const struct sched_class fair_sched_class = {
 	.next			= &idle_sched_class,

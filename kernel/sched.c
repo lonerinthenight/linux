@@ -388,13 +388,13 @@ static inline struct task_group *task_group(struct task_struct *p)
 /* CFS-related fields in a runqueue */
 struct cfs_rq {
 	struct load_weight load;
-	unsigned long nr_running;
+	unsigned long nr_running;			/*cfs调度类的 runing task数量*/
 
 	u64 exec_clock;
 	u64 min_vruntime;
 
-	struct rb_root tasks_timeline;
-	struct rb_node *rb_leftmost;
+	struct rb_root tasks_timeline;		/*task.entity.run_node为钩子的红黑树*/
+	struct rb_node *rb_leftmost;		/* 缓存：key值(vruntime)最小的节点，即最左侧叶子节点 */
 
 	struct list_head tasks;
 	struct list_head *balance_iterator;
@@ -531,7 +531,7 @@ struct rq {
 	 * nr_running and cpu_load should be in the same cacheline because
 	 * remote CPUs use both these fields when doing load calculation.
 	 */
-	unsigned long nr_running;
+	unsigned long nr_running;				/*本rq的running task数量*/
 	#define CPU_LOAD_IDX_MAX 5
 	unsigned long cpu_load[CPU_LOAD_IDX_MAX];
 #ifdef CONFIG_NO_HZ
@@ -541,7 +541,7 @@ struct rq {
 	/* capture load from *all* tasks on this cpu: */
 	struct load_weight load;
 	unsigned long nr_load_updates;
-	u64 nr_switches;
+	u64 nr_switches;				/*本rq 调度task的总次数*/
 	u64 nr_migrations_in;
 
 	struct cfs_rq cfs;
@@ -563,11 +563,11 @@ struct rq {
 	 */
 	unsigned long nr_uninterruptible;
 
-	struct task_struct *curr, *idle;
+	struct task_struct *curr /*current running task*/, *idle/*idle task（没有有意义进程被调度时，idle就被调度）*/;
 	unsigned long next_balance;
-	struct mm_struct *prev_mm;
+	struct mm_struct *prev_mm;	/* 用作内核线程的mm（内核线程只访问“内核地址空间”，而所有进程内核地址空间都一样<用户进程通过陷入访问，内核线程直接访问>）*/
 
-	u64 clock;
+	u64 clock;					/*当前时间（单位ns）*/
 
 	atomic_t nr_iowait;
 
@@ -1290,7 +1290,7 @@ static void sched_rt_avg_update(struct rq *rq, u64 rt_delta)
 #define WMULT_SHIFT	32
 
 /*
- * Shift right and round:
+ * Shift right and round（四舍五入）:
  */
 #define SRR(x, y) (((x) + (1UL << ((y) - 1))) >> (y))
 
@@ -5378,8 +5378,7 @@ static void put_prev_task(struct rq *rq, struct task_struct *p)
 /*
  * Pick up the highest-prio task:
  */
-static inline struct task_struct *
-pick_next_task(struct rq *rq)
+static inline struct task_struct * pick_next_task(struct rq *rq)
 {
 	const struct sched_class *class;
 	struct task_struct *p;
@@ -5393,7 +5392,8 @@ pick_next_task(struct rq *rq)
 		if (likely(p))
 			return p;
 	}
-
+	
+	/*目前有3种调度类：rt_sched_class -> fair_sched_class -> idle_sched_class -> NULL */
 	class = sched_class_highest;
 	for ( ; ; ) {
 		p = class->pick_next_task(rq);
@@ -5408,7 +5408,9 @@ pick_next_task(struct rq *rq)
 }
 
 /*
- * schedule() is the main scheduler function.
+ * schedule() is the main scheduler function.调度器入口
+ 1. 选择优先级最高的调度类
+ 2. 从“选定调度类”的rq中挑选最合适被调度的task
  */
 asmlinkage void __sched schedule(void)
 {
@@ -5451,7 +5453,7 @@ need_resched_nonpreemptible:
 		idle_balance(cpu, rq);
 
 	put_prev_task(rq, prev);
-	next = pick_next_task(rq);/* 获取“最高优先级调度类” 的“最高优先级进程” */
+	next = pick_next_task(rq);	/* 获取“最高优先级调度类” 的“最高优先级进程” */
 
 	if (likely(prev != next)) {
 		sched_info_switch(prev, next);
