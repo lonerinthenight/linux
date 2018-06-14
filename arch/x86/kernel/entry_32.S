@@ -347,6 +347,10 @@ END(ret_from_fork)
 	# userspace resumption stub bypassing syscall exit tracing
 	ALIGN
 	RING0_PTREGS_FRAME
+
+# 异常返回/中断返回（包括系统调用）前，
+# 通过 resume_kernel检查cur_info.flag & TIF_NEED_RESCHED，
+# 若为true，则调度“next_task”，发生“用户抢占”
 ret_from_exception:
 	preempt_stop(CLBR_ANY)
 ret_from_intr:
@@ -377,8 +381,8 @@ ENTRY(resume_kernel)
 	cmpl $0,TI_preempt_count(%ebp)	# non-zero preempt_count ?
 	jnz restore_all
 need_resched:
-	movl TI_flags(%ebp), %ecx	# need_resched set ?
-	testb $_TIF_NEED_RESCHED, %cl
+	movl TI_flags(%ebp), %ecx				# need_resched set ?
+	testb $_TIF_NEED_RESCHED, %cl			# flag & TIF_NEED_RESCHED
 	jz restore_all
 	testl $X86_EFLAGS_IF,PT_EFLAGS(%esp)	# interrupts off (exception path) ?
 	jz restore_all

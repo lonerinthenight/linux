@@ -29,12 +29,13 @@ typedef struct __wait_queue wait_queue_t;
 typedef int (*wait_queue_func_t)(wait_queue_t *wait, unsigned mode, int flags, void *key);
 int default_wake_function(wait_queue_t *wait, unsigned mode, int flags, void *key);
 
+/* 休眠/被阻塞进程的 wait_queue 节点 */
 struct __wait_queue {
 	unsigned int flags;
-#define WQ_FLAG_EXCLUSIVE	0x01
-	void *private;
-	wait_queue_func_t func;
-	struct list_head task_list;
+	#define WQ_FLAG_EXCLUSIVE	0x01
+	void *private;					/* 即将被wakeup的task_struct，初始化为current */
+	wait_queue_func_t func;			/* 等待条件被满足时，调用 autoremove_wake_function() ，唤醒“休眠”进程 */
+	struct list_head task_list;		/* 休眠进程链表 */
 };
 
 struct wait_bit_key {
@@ -51,7 +52,7 @@ struct __wait_queue_head {
 	spinlock_t lock;
 	struct list_head task_list;
 };
-typedef struct __wait_queue_head wait_queue_head_t;
+typedef struct __wait_queue_head wait_queue_head_t;	/* 休眠/被阻塞进程的“wait_queue_head” */
 
 struct task_struct;
 
@@ -452,7 +453,7 @@ int wake_bit_function(wait_queue_t *wait, unsigned mode, int sync, void *key);
 		.task_list	= LIST_HEAD_INIT((name).task_list),	\
 	}
 
-#define DEFINE_WAIT(name) DEFINE_WAIT_FUNC(name, autoremove_wake_function)
+#define DEFINE_WAIT(name) DEFINE_WAIT_FUNC(name, autoremove_wake_function) /* 创建等待队列节点 */
 
 #define DEFINE_WAIT_BIT(name, word, bit)				\
 	struct wait_bit_queue name = {					\

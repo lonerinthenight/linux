@@ -218,16 +218,17 @@ static int md_make_request(struct request_queue *q, struct bio *bio)
 	}
 	rcu_read_lock();
 	if (mddev->suspended) {
-		DEFINE_WAIT(__wait);
+		DEFINE_WAIT(__wait);	/* 定义“等待队列节点”（current,wake_function...） */
 		for (;;) {
-			prepare_to_wait(&mddev->sb_wait, &__wait,
+			prepare_to_wait(&mddev->sb_wait, &__wait,	/* “节点”插入wait_queue_head，“current被阻塞 */
 					TASK_UNINTERRUPTIBLE);
-			if (!mddev->suspended)
+			if (!mddev->suspended)						/* 条件满足，wake_function唤醒“被阻塞current进程”，且被调度。再次判断条件是否满足 */
 				break;
 			rcu_read_unlock();
-			schedule();
+			schedule();									/* 被阻塞的current进程等待条件依然未满足，则继续schedule() */
 			rcu_read_lock();
 		}
+		/* 条件满足后，退出循环，包含本current进程的“等待队列节点”被从wait_queue_head中删除 */
 		finish_wait(&mddev->sb_wait, &__wait);
 	}
 	atomic_inc(&mddev->active_io);

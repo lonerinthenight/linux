@@ -19,7 +19,7 @@ void __init_waitqueue_head(wait_queue_head_t *q, struct lock_class_key *key)
 
 EXPORT_SYMBOL(__init_waitqueue_head);
 
-void add_wait_queue(wait_queue_head_t *q, wait_queue_t *wait)
+void add_wait_queue(wait_queue_head_t *q, wait_queue_t *wait) /* 将“等待队列节点” 插入wait_queue_head */
 {
 	unsigned long flags;
 

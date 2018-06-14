@@ -53,23 +53,30 @@ struct notifier_block {
 	int priority;
 };
 
+/*1. 裸notifier：notifier_call()、notifier_chain_register()、notifier_chain_unregister()
+   				 的lock and protection由使用者实现*/
+struct raw_notifier_head {
+	struct notifier_block *head;
+};
+
+/*2. 原子式notifier：head.notifier_call回调函数不能“阻塞”，用于“中断上下文”等其它非阻塞环境 */
 struct atomic_notifier_head {
 	spinlock_t lock;
 	struct notifier_block *head;
 };
 
+/*3. 阻塞式notifier：notifier_call回调函数可被“阻塞”，用于“进程上下文” */
 struct blocking_notifier_head {
-	struct rw_semaphore rwsem;
+	struct rw_semaphore rwsem;		/* rw-semaphores 式 阻塞*/
 	struct notifier_block *head;
 };
-
-struct raw_notifier_head {
-	struct notifier_block *head;
-};
-
-struct srcu_notifier_head {
+struct srcu_notifier_head {			
+	/*1. notifier_call开销低（no cache bounces and no memory barriers）
+	  2. srcu_notifier_chain_unregister()开销特别高。
+	  因此，相对rw-semaphores，适用于“notifier_call()”经常被调用，
+	                           且notifier_block不经常被删除的场景 */
 	struct mutex mutex;
-	struct srcu_struct srcu;
+	struct srcu_struct srcu;		/* Sleepable Read-Copy Update 式 阻塞 */
 	struct notifier_block *head;
 };
 

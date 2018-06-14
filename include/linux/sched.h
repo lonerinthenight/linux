@@ -32,9 +32,14 @@
 /*
  * Scheduling policies
  */
-#define SCHED_NORMAL	0	/* CFS 完全公平调度算法，用于调度普通进程，POSIX中叫SCHED_OTHER */
-#define SCHED_FIFO		1
-#define SCHED_RR		2
+/* CFS 完全公平调度算法，用于调度普通进程，POSIX中叫SCHED_OTHER。动态优先级 */
+#define SCHED_NORMAL	0
+
+/*1. 2种实时调度策略：FIFO/RR策略优先级高于NORMAL策略。仅静态优先级。
+  2. Linux2.6是“软实时调度”，但性能接近“硬实时调度”。*/
+#define SCHED_FIFO		1	/* 优先级最高的task一直运行，除非 “执行完毕”或“阻塞”或“主动释放CPU”。 */	
+#define SCHED_RR		2	/* FIFO + “相同优先级task间”的“时间片轮转” */
+
 #define SCHED_BATCH		3
 /* SCHED_ISO: reserved but not implemented yet */
 #define SCHED_IDLE		5
@@ -753,12 +758,12 @@ struct reclaim_state;
 #if defined(CONFIG_SCHEDSTATS) || defined(CONFIG_TASK_DELAY_ACCT)
 struct sched_info {
 	/* cumulative counters */
-	unsigned long pcount;	      /* # of times run on this cpu */
-	unsigned long long run_delay; /* time spent waiting on a runqueue */
+	unsigned long 			pcount;	    /* # of times run on this cpu */
+	unsigned long long	 run_delay; 	/* time spent waiting on a runqueue */
 
 	/* timestamps */
-	unsigned long long last_arrival,/* when we last ran on a cpu */
-			   last_queued;	/* when we were last queued to run */
+	unsigned long long last_arrival,	/* when we last ran on a cpu */
+			   			last_queued;	/* when we were last queued to run */
 #ifdef CONFIG_SCHEDSTATS
 	/* BKL stats */
 	unsigned int bkl_count;
@@ -1177,11 +1182,11 @@ struct sched_entity {
 	u64			nr_forced_migrations;
 	u64			nr_forced2_migrations;
 
-	u64			nr_wakeups;
+	u64			nr_wakeups;					/* 本entity被唤醒的总次数 */
 	u64			nr_wakeups_sync;
-	u64			nr_wakeups_migrate;
-	u64			nr_wakeups_local;
-	u64			nr_wakeups_remote;
+	u64			nr_wakeups_migrate;			/* 本entity唤醒前后调度到不同CPU的总次数 */
+	u64			nr_wakeups_local;			/* 本entity被唤醒到“与try_to_wake_up()相同CPU”的总次数 */
+	u64			nr_wakeups_remote;			/* 本entity被唤醒到“与try_to_wake_up()不同CPU”的总次数 */
 	u64			nr_wakeups_affine;
 	u64			nr_wakeups_affine_attempts;
 	u64			nr_wakeups_passive;
@@ -1216,13 +1221,13 @@ struct sched_rt_entity {
 struct rcu_node;
 
 struct task_struct {
-	volatile long state;	/* -1 unrunnable, 0 runnable, >0 stopped */
-	void *stack;
-	atomic_t usage;
-	unsigned int flags;	/* per process flags, defined below */
-	unsigned int ptrace;
+	volatile long 		state;	/* -1 unrunnable, 0 runnable, >0 stopped */
+	void 				*stack;
+	atomic_t 			usage;
+	unsigned int 		flags;	/* per process flags, defined below */
+	unsigned int 		ptrace;
 
-	int lock_depth;		/* BKL lock depth */
+	int 				lock_depth;		/* BKL lock depth */
 
 #ifdef CONFIG_SMP
 #ifdef __ARCH_WANT_UNLOCKED_CTXSW
@@ -1231,10 +1236,10 @@ struct task_struct {
 #endif
 
 	int prio, static_prio, normal_prio;
-	unsigned int rt_priority;
+	unsigned int 		rt_priority;
 	const struct sched_class *sched_class;	/* 用于调度被task的“调度类” */
-	struct sched_entity se;					/*CFS stats for 调度实体(如 task, task-group...) */
-	struct sched_rt_entity rt;
+	struct sched_entity 	se;				/*CFS stats for 调度实体(如 task, task-group...) */
+	struct sched_rt_entity  rt;
 
 #ifdef CONFIG_PREEMPT_NOTIFIERS
 	/* list of struct preempt_notifier: */
@@ -1254,8 +1259,11 @@ struct task_struct {
 	unsigned int btrace_seq;
 #endif
 
-	unsigned int policy;
-	cpumask_t cpus_allowed;
+	unsigned int 			policy;			/*  调度策略：NORMAL, FIFO, RR*/
+	cpumask_t 				cpus_allowed;	/*  可执行本task的cpu掩码。sched_setaffinity()修改后，
+												由内核线程 # migration_thread() # 负责task的cpu迁移。
+												该内核线程由migration_notifier.migration_call()创建。
+												该notify_block由 migration_init()->register_cpu_notifier()->raw_notifier_chain_register 注册 */
 
 #ifdef CONFIG_TREE_PREEMPT_RCU
 	int rcu_read_lock_nesting;
@@ -1559,6 +1567,9 @@ struct task_struct {
  * MAX_RT_PRIO must not be smaller than MAX_USER_RT_PRIO.
  */
 
+/*RT(FIFO/RR)优先级范围：[0 , MAX_RT_PRIO) 			=[  0, 100) 高
+  CFS(NORMAL)优先级范围：[MAX_RT_PRIO, MAX_PRIO)=[100, 140) 低
+  											nice=[-20,  20)   */
 #define MAX_USER_RT_PRIO	100
 #define MAX_RT_PRIO		MAX_USER_RT_PRIO
 

@@ -48,16 +48,19 @@ struct cpu_context_save {
  * __switch_to() assumes cpu_context follows immediately after cpu_domain.
  */
 struct thread_info {
-	unsigned long		flags;		/* low level flags */
-	int			preempt_count;	/* 0 => preemptable, <0 => bug */
-	mm_segment_t		addr_limit;	/* address limit */
-	struct task_struct	*task;		/* main task structure */
+	unsigned long		flags;			/* low level flags */
+										/* TIF_NEED_RESCHED：中断返回/sys_call返回时，
+										   检查(flags&TIF_NEED_RESCHED)，若true，则调度其它task，
+										   发生“用户抢占” */
+	int					preempt_count;	/* 0 => preemptable, <0 => bug */
+	mm_segment_t		addr_limit;		/* address limit */
+	struct task_struct	*task;			/* main task structure */
 	struct exec_domain	*exec_domain;	/* execution domain */
-	__u32			cpu;		/* cpu */
-	__u32			cpu_domain;	/* cpu domain */
+	__u32				cpu;			/* cpu */
+	__u32				cpu_domain;		/* cpu domain */
 	struct cpu_context_save	cpu_context;	/* cpu context */
-	__u32			syscall;	/* syscall number */
-	__u8			used_cp[16];	/* thread used copro */
+	__u32				syscall;		/* syscall number */
+	__u8				used_cp[16];	/* thread used copro */
 	unsigned long		tp_value;
 	struct crunch_state	crunchstate;
 	union fp_state		fpstate __attribute__((aligned(8)));
@@ -135,7 +138,7 @@ extern void vfp_sync_state(struct thread_info *thread);
  *  TIF_POLLING_NRFLAG	- true if poll_idle() is polling TIF_NEED_RESCHED
  */
 #define TIF_SIGPENDING		0
-#define TIF_NEED_RESCHED	1
+#define TIF_NEED_RESCHED	1	/* clear_tsk_need_resched()可清除thread_info.flag的need_resched位 */
 #define TIF_NOTIFY_RESUME	2	/* callback before returning to user */
 #define TIF_SYSCALL_TRACE	8
 #define TIF_POLLING_NRFLAG	16

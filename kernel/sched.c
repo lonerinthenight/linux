@@ -2407,9 +2407,9 @@ out_activate:
 	schedstat_inc(p, se.nr_wakeups);
 	if (wake_flags & WF_SYNC)
 		schedstat_inc(p, se.nr_wakeups_sync);
-	if (orig_cpu != cpu)
+	if (orig_cpu/*task_Stage1_cpu*/ != cpu/*task_Stage2_cpu*/)
 		schedstat_inc(p, se.nr_wakeups_migrate);
-	if (cpu == this_cpu)
+	if (cpu == this_cpu/*当前执行try_to_wake_up()函数的cpu*/)
 		schedstat_inc(p, se.nr_wakeups_local);
 	else
 		schedstat_inc(p, se.nr_wakeups_remote);
@@ -2439,7 +2439,7 @@ out_running:
 	p->state = TASK_RUNNING;
 #ifdef CONFIG_SMP
 	if (p->sched_class->task_wake_up)
-		p->sched_class->task_wake_up(rq, p);
+		p->sched_class->task_wake_up(rq, p);	/*rt: task_wake_up_rt()*/
 #endif
 out:
 	task_rq_unlock(rq, &flags);
@@ -2871,7 +2871,7 @@ context_switch(struct rq *rq, struct task_struct *prev,
 #endif
 
 	/* Here we just switch the register state and the stack. */
-	switch_to(prev, next, prev);	/* 2/2 切换CPU状态（所有寄存器们）*/
+	switch_to(prev, next, prev);	/* 2/2 切换CPU状态（所有寄存器们、堆栈）*/
 
 	barrier();
 	/*
@@ -5424,7 +5424,7 @@ need_resched:
 	cpu = smp_processor_id();
 	rq = cpu_rq(cpu);
 	rcu_sched_qs(cpu);
-	prev = rq->curr;
+	prev = rq->curr;				/* 刚被阻塞的pre_task（通过add_wait_queue） */
 	switch_count = &prev->nivcsw;
 
 	release_kernel_lock(prev);
@@ -5437,13 +5437,13 @@ need_resched_nonpreemptible:
 
 	spin_lock_irq(&rq->lock);
 	update_rq_clock(rq);
-	clear_tsk_need_resched(prev);
+	clear_tsk_need_resched(prev);	/* 清除pre_task.thread_info.flag的TIF_NEED_RESCHED位*/
 
-	if (prev->state && !(preempt_count() & PREEMPT_ACTIVE)) {
+	if (prev->state/*阻塞*/ && !(preempt_count() & PREEMPT_ACTIVE)) {
 		if (unlikely(signal_pending_state(prev->state, prev)))
 			prev->state = TASK_RUNNING;
 		else
-			deactivate_task(rq, prev, 1);
+			deactivate_task(rq, prev, 1);	/*从rq rb_tree中删除pre_task*/
 		switch_count = &prev->nvcsw;
 	}
 
@@ -6358,7 +6358,7 @@ recheck:
  * NOTE that the task may be already dead.
  */
 int sched_setscheduler(struct task_struct *p, int policy,
-		       struct sched_param *param)
+		       struct sched_param *param /*priority*/)
 {
 	return __sched_setscheduler(p, policy, param, true);
 }
@@ -7729,10 +7729,10 @@ static int __init migration_init(void)
 	int err;
 
 	/* Start one for the boot CPU: */
-	err = migration_call(&migration_notifier, CPU_UP_PREPARE, cpu);
+	err = migration_call(&migration_notifier, CPU_UP_PREPARE, cpu);	/* 创建migration%d内核线程：migration_thread() */
 	BUG_ON(err == NOTIFY_BAD);
-	migration_call(&migration_notifier, CPU_ONLINE, cpu);
-	register_cpu_notifier(&migration_notifier);
+	migration_call(&migration_notifier, CPU_ONLINE, cpu);			/* 唤醒migration%d内核线程：migration_thread() */
+	register_cpu_notifier(&migration_notifier);						/* 注册notify_block（migration_notifier）到cpu_chain（raw_notifier_head） */
 
 	return 0;
 }

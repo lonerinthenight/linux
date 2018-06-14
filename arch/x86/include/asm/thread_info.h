@@ -24,23 +24,32 @@ struct exec_domain;
 #include <asm/atomic.h>
 
 struct thread_info {
-	struct task_struct	*task;		/* main task structure */
-	struct exec_domain	*exec_domain;	/* execution domain */
-	__u32			flags;		/* low level flags */
-	__u32			status;		/* thread synchronous flags */
-	__u32			cpu;		/* current CPU */
-	int			preempt_count;	/* 0 => preemptable,
-						   <0 => BUG */
+	struct task_struct	*task;				/* main task structure */
+	struct exec_domain	*exec_domain;		/* execution domain */
+	__u32				flags;				/* low level flags */
+											/* TIF_NEED_RESCHED：中断返回/sys_call返回时，
+										   		检查(flags&TIF_NEED_RESCHED)，若true，则调度其它task，
+										   		发生“用户抢占” */
+										   
+	__u32				status;				/* thread synchronous flags */
+	__u32				cpu;				/* current CPU */
+	int					preempt_count;		/* 0 => preemptable, <0 => BUG */
+											/* 1. “内核抢占”：内核可抢占“内核级task(如内核线程等)”，只要内核级task“未持有锁”。 
+												内核线程每持有一把锁，内核thread_info.preempt_count++；减少一把锁，则--；
+												内核thread_info.preempt_count == 0时，允许被其它task抢占。
+											   2. “内核抢占”的时机：
+											   		2.1 中断服务程序返回内核前。
+											   		2.2 内核代码再次可抢占的时候（thread_info.preempt_count变为0时）。
+											   		2.3 “内核级task”显示执行schedule()。
+											   		2.4 “内核级task”阻塞时。 */
 	mm_segment_t		addr_limit;
 	struct restart_block    restart_block;
-	void __user		*sysenter_return;
+	void __user			*sysenter_return;
 #ifdef CONFIG_X86_32
-	unsigned long           previous_esp;   /* ESP of the previous stack in
-						   case of nested (IRQ) stacks
-						*/
-	__u8			supervisor_stack[0];
+	unsigned long       previous_esp;   /* ESP of the previous stack in case of nested (IRQ) stacks */
+	__u8				supervisor_stack[0];
 #endif
-	int			uaccess_err;
+	int					uaccess_err;
 };
 
 #define INIT_THREAD_INFO(tsk)			\

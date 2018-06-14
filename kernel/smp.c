@@ -85,7 +85,7 @@ static int __cpuinit init_call_single_data(void)
 	}
 
 	hotplug_cfd(&hotplug_cfd_notifier, CPU_UP_PREPARE, cpu);
-	register_cpu_notifier(&hotplug_cfd_notifier);
+	register_cpu_notifier(&hotplug_cfd_notifier);			/* 注册notify_block（hotplug_cfd_notifier）到cpu_chain（raw_notifier_head）*/
 
 	return 0;
 }
