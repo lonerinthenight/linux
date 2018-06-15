@@ -104,8 +104,8 @@ EXPORT_SYMBOL(fs_overflowgid);
 /*
  * this indicates whether you can reboot with ctrl-alt-del: the default is yes
  */
+int C_A_D = 1;	/*允许 ctrl-alt-del 快捷键重启*/
 
-int C_A_D = 1;
 struct pid *cad_pid;
 EXPORT_SYMBOL(cad_pid);
 
@@ -364,7 +364,7 @@ SYSCALL_DEFINE4(reboot, int, magic1, int, magic2, unsigned int, cmd,
 	int ret = 0;
 
 	/* We only trust the superuser with rebooting the system. */
-	if (!capable(CAP_SYS_BOOT))
+	if (!capable(CAP_SYS_BOOT))/* 调用“LSM”，核查当前task的“权能” */
 		return -EPERM;
 
 	/* For safety, we require "magic" arguments. */
@@ -387,8 +387,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int, magic2, unsigned int, cmd,
 		kernel_restart(NULL);
 		break;
 
-	case LINUX_REBOOT_CMD_CAD_ON:
-		C_A_D = 1;
+	case LINUX_REBOOT_CMD_CAD_ON: /*允许 Ctrl-Alt-Del 快捷键重启*/
+		C_A_D = 1;	/*Ctrl-Alt-Del*/
 		break;
 
 	case LINUX_REBOOT_CMD_CAD_OFF:

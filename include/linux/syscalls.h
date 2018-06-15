@@ -256,6 +256,17 @@ static void prof_sysexit_disable_##sname(void)				       \
 #define SYSCALL_DEFINE0(name)	   asmlinkage long sys_##name(void)
 #endif
 
+/* 1. 3种合法的“内核入口”：syscall、陷入、异常。
+   2. 理论：APP -> API(POSIX,SUSv3) -> syscall(确定目的的函数，机制，非策略) -> kernel_method 
+      实际：APP -> c库(引出syscall接口，实现大部分POSIX API) -> syscall -> kernel_method 
+   3. 系统调用处理程序syscall（entry_64.S），本质是异常处理程序（对x86，由int 0x80或sysenter触发），
+      从用户态切换到内核态，由相应的“系统调用函数”在内核态代替用户进程完成特定任务。
+   4. “领导”位于“内核态”，负责全局稳定和发展方向，“伙计”位于“用户态”，负责干活；为了维护全局稳定和发展，
+	  “领导”也得有统一的通道——“讨厌”（如异常、陷入、系统调用），了解“伙计”需求、环境动态（砸场的）。
+      “伙计”干活的涉密部分，只能报告“领导”，切入“内核态”，由其代办。
+      若环境变了（比如有人砸场），“领导”根据具体情况，决定是否采取措施（处理异常、陷入）。   
+   5. 对于x86，%eax用于syscall_返回值,%ebx,ecx,edx,esi,edi用于前5个参数，其余参数们的指针用其它某reg传递
+   */
 #define SYSCALL_DEFINE1(name, ...) SYSCALL_DEFINEx(1, _##name, __VA_ARGS__)
 #define SYSCALL_DEFINE2(name, ...) SYSCALL_DEFINEx(2, _##name, __VA_ARGS__)
 #define SYSCALL_DEFINE3(name, ...) SYSCALL_DEFINEx(3, _##name, __VA_ARGS__)
@@ -315,6 +326,8 @@ static void prof_sysexit_disable_##sname(void)				       \
 
 #endif /* CONFIG_HAVE_SYSCALL_WRAPPERS */
 
+/* 1. asmlinkage 表示仅从栈中读取参数 
+   2. 内核空间返回值long类型，用户空间是int：兼容32/64。*/
 asmlinkage long sys_time(time_t __user *tloc);
 asmlinkage long sys_stime(time_t __user *tptr);
 asmlinkage long sys_gettimeofday(struct timeval __user *tv,

@@ -450,7 +450,7 @@ struct cfs_rq {
 
 /* Real-Time classes' related field in a runqueue: */
 struct rt_rq {
-	struct rt_prio_array active;
+	struct rt_prio_array active;	/* 基于优先级的 “队列们” */
 	unsigned long rt_nr_running;
 #if defined CONFIG_SMP || defined CONFIG_RT_GROUP_SCHED
 	struct {
@@ -5372,7 +5372,7 @@ static void put_prev_task(struct rq *rq, struct task_struct *p)
 	} else {
 		update_avg(&p->se.avg_running, 0);
 	}
-	p->sched_class->put_prev_task(rq, p);
+	p->sched_class->put_prev_task(rq, p);	/*for cfs: put_prev_task_fair() */
 }
 
 /*
@@ -6660,7 +6660,8 @@ SYSCALL_DEFINE0(sched_yield)
 	struct rq *rq = this_rq_lock();
 
 	schedstat_inc(rq, yld_count);
-	current->sched_class->yield_task(rq);
+	current->sched_class->yield_task(rq);	/* yield_task_fair(): current_task从rq的rb_tree中删除
+											   yield_task_rt()  : current_task插入当前队列末端（因rt_task不能过期） */
 
 	/*
 	 * Since we are going to call schedule() anyway, there's
