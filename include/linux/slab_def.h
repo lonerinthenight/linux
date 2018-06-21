@@ -16,6 +16,16 @@
 #include <linux/compiler.h>
 #include <linux/kmemtrace.h>
 
+/* Size description struct for general caches. */
+struct cache_sizes {
+	size_t		 		cs_size;	/* “malloc_sizes[i]槽位大小” 以32byte的倍数递增：1、2、3、4、6、8、16、32、64... */	
+	struct kmem_cache	*cs_cachep;	
+#ifdef CONFIG_ZONE_DMA
+	struct kmem_cache	*cs_dmacachep;
+#endif
+};
+extern struct cache_sizes malloc_sizes[];
+
 /* 1. slab/slub/slob分配器
 	 * slab
 	 * slub：slab的进化版，有取代slab的趋势。
@@ -96,15 +106,6 @@ struct kmem_cache {
 	 */
 };
 
-/* Size description struct for general caches. */
-struct cache_sizes {
-	size_t		 		cs_size;	/* “malloc_sizes[i]槽位大小” 以32byte的倍数递增：1、2、3、4、6、8、16、32、64... */	
-	struct kmem_cache	*cs_cachep;	
-#ifdef CONFIG_ZONE_DMA
-	struct kmem_cache	*cs_dmacachep;
-#endif
-};
-extern struct cache_sizes malloc_sizes[];
 
 void *kmem_cache_alloc(struct kmem_cache *, gfp_t);
 void *__kmalloc(size_t size, gfp_t flags);
