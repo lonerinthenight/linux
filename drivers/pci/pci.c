@@ -1085,6 +1085,7 @@ void pcim_pin_device(struct pci_dev *pdev)
  */
 void __attribute__ ((weak)) pcibios_disable_device (struct pci_dev *dev) {}
 
+/*set "Bus Master Enable (BME)—R/W." = disabled */
 static void do_pci_disable_device(struct pci_dev *dev)
 {
 	u16 pci_command;

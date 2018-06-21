@@ -222,12 +222,12 @@ typedef unsigned int kmem_bufctl_t;
  * Slabs are chained into three list: fully used, partial, fully free slabs.
  */
 struct slab {
-	struct list_head list;
-	unsigned long colouroff;
-	void *s_mem;		/* including colour offset */
-	unsigned int inuse;	/* num of objs active in slab */
-	kmem_bufctl_t free;
-	unsigned short nodeid;
+	struct list_head list;		/* 被链到 “kmem_cache.kmem_list3.slabs_partial” 或 full 或 free上 */
+	unsigned long	 colouroff;
+	void 			 *s_mem;	/* including colour offset */
+	unsigned int 	 inuse;		/* num of objs active in slab */
+	kmem_bufctl_t 	 free;		/* 第1个空闲的obj */
+	unsigned short   nodeid;
 };
 
 /*
@@ -291,9 +291,11 @@ struct arraycache_init {
  * The slab lists for all objects.
  */
 struct kmem_list3 {
+	/* 把所有“struct slab.list”串联起来 */
 	struct list_head slabs_partial;	/* partial list first, better asm code */
-	struct list_head slabs_full;
-	struct list_head slabs_free;
+	struct list_head slabs_full;	/* 所有slab都已被分配 */
+	struct list_head slabs_free;	/* 所有slab都没被分配 */
+	
 	unsigned long free_objects;
 	unsigned int free_limit;
 	unsigned int colour_next;	/* Per-node cache coloring */
@@ -567,8 +569,8 @@ static inline unsigned int obj_to_index(const struct kmem_cache *cache,
 /*
  * These are the default caches for kmalloc. Custom caches can have other sizes.
  */
-struct cache_sizes malloc_sizes[] = {
-#define CACHE(x) { .cs_size = (x) },
+struct cache_sizes malloc_sizes[] = {	/*                     0  1  2  3  4  5   6   7   8... */
+#define CACHE(x) { .cs_size = (x) },	/* 以32byte的倍数递增：1、2、3、4、6、8、16、32、64... */
 #include <linux/kmalloc_sizes.h>
 	CACHE(ULONG_MAX)
 #undef CACHE
@@ -3689,22 +3691,26 @@ static __always_inline void *__do_kmalloc(size_t size, gfp_t flags,
 	 * Then kmalloc uses the uninlined functions instead of the inline
 	 * functions.
 	 */
-	cachep = __find_general_cachep(size, flags);
+	cachep = __find_general_cachep(size, flags);	/*从malloc_sizes[i]槽中找到合适的槽*/
 	if (unlikely(ZERO_OR_NULL_PTR(cachep)))
 		return cachep;
-	ret = __cache_alloc(cachep, flags, caller);
+	ret = __cache_alloc(cachep, flags, caller);		/* 从“合适的槽”中分配内存（由VA指向）*/
 
 	trace_kmalloc((unsigned long) caller, ret,
 		      size, cachep->buffer_size, flags);
 
-	return ret;
+	return ret;	/*返回VA*/
 }
 
 
 #if defined(CONFIG_DEBUG_SLAB) || defined(CONFIG_KMEMTRACE)
+/* __builtin_return_address(0)：返回“当前函数”的返回地址。
+   __builtin_return_address(1)：返回“当前函数的上一级函数”的返回地址。
+   以此类推。*/
 void *__kmalloc(size_t size, gfp_t flags)
 {
-	return __do_kmalloc(size, flags, __builtin_return_address(0));
+	return __do_kmalloc(size, flags, __builtin_return_address(0)/*返回__kmalloc的返回地址*/);
+					/* __builtin_return_address(0) 属于 __kmalloc()，而不是__do_kmalloc()*/
 }
 EXPORT_SYMBOL(__kmalloc);
 

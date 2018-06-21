@@ -1,19 +1,19 @@
-#if (PAGE_SIZE == 4096)
-	CACHE(32)
+ #if (PAGE_SIZE == 4096)
+	CACHE(32)		/* 		20h = 1 * 20h */
 #endif
-	CACHE(64)
+	CACHE(64)		/* 		40h = 2 * 20h*/
 #if L1_CACHE_BYTES < 64
-	CACHE(96)
+	CACHE(96)		/*		60h = 3 * 20h*/
 #endif
-	CACHE(128)
+	CACHE(128)		/*		80h = 4 * 20h */
 #if L1_CACHE_BYTES < 128
-	CACHE(192)
+	CACHE(192)		/*		c0h = 6 * 20h */
 #endif
-	CACHE(256)
-	CACHE(512)
-	CACHE(1024)
-	CACHE(2048)
-	CACHE(4096)
+	CACHE(256)		/*	   100h = 8 * 20h  */
+	CACHE(512)		/*	   200h = 16 * 20h */
+	CACHE(1024)		/*	   400h = 32 * 20h */
+	CACHE(2048)		/*	   800h = 64 * 20h */
+	CACHE(4096)		/*	  1000h = 128 * 20h */
 	CACHE(8192)
 	CACHE(16384)
 	CACHE(32768)

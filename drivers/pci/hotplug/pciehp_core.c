@@ -387,7 +387,7 @@ static int pciehp_resume (struct pcie_device *dev)
 
 static struct pcie_port_service_driver hpdriver_portdrv = {
 	.name		= PCIE_MODULE_NAME,
-	.port_type	= PCIE_ANY_PORT,
+	.port_type	= PCIE_ANY_PORT,		/* RC, UPSTREAM, DOWNSTREAM 类型port 支持 HP */
 	.service	= PCIE_PORT_SERVICE_HP,
 
 	.probe		= pciehp_probe,

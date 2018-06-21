@@ -244,8 +244,8 @@ struct bus_attribute pci_bus_attrs[] = {
 	__ATTR_NULL
 };
 
-static ssize_t
-dev_rescan_store(struct device *dev, struct device_attribute *attr,
+/* /sys/bus/pci/rescan */
+static ssize_t dev_rescan_store(struct device *dev, struct device_attribute *attr,
 		 const char *buf, size_t count)
 {
 	unsigned long val;
@@ -293,8 +293,8 @@ remove_store(struct device *dev, struct device_attribute *dummy,
 #endif
 
 struct device_attribute pci_dev_attrs[] = {
-	__ATTR_RO(resource),
-	__ATTR_RO(vendor),
+	__ATTR_RO(resource),									/* show pci dev resource */
+	__ATTR_RO(vendor),										/* show pci dev vendor */
 	__ATTR_RO(device),
 	__ATTR_RO(subsystem_vendor),
 	__ATTR_RO(subsystem_device),
@@ -306,13 +306,13 @@ struct device_attribute pci_dev_attrs[] = {
 #ifdef CONFIG_NUMA
 	__ATTR_RO(numa_node),
 #endif
-	__ATTR(enable, 0600, is_enabled_show, is_enabled_store),
+	__ATTR(enable, 0600, is_enabled_show, is_enabled_store),	/* enable/disable pci dev */
 	__ATTR(broken_parity_status,(S_IRUGO|S_IWUSR),
 		broken_parity_status_show,broken_parity_status_store),
 	__ATTR(msi_bus, 0644, msi_bus_show, msi_bus_store),
 #ifdef CONFIG_HOTPLUG
-	__ATTR(remove, (S_IWUSR|S_IWGRP), NULL, remove_store),
-	__ATTR(rescan, (S_IWUSR|S_IWGRP), NULL, dev_rescan_store),
+	__ATTR(remove, (S_IWUSR|S_IWGRP), NULL, remove_store),		/* remove pci dev*/
+	__ATTR(rescan, (S_IWUSR|S_IWGRP), NULL, dev_rescan_store),	/* rescan pci bus for the dev. /sys/bus/pci/rescan */
 #endif
 	__ATTR_NULL,
 };

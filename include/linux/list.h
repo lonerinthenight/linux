@@ -477,7 +477,7 @@ static inline void list_splice_tail_init(struct list_head *list,
  * @head:	the head for your list.
  * @member:	the name of the list_struct within the struct.
  */
-#define list_for_each_entry_safe(pos, n, head, member)			\
+#define list_for_each_entry_safe(pos, n, head, member)			\	/*保存下一节点，可安全删除当前节点*/
 	for (pos = list_entry((head)->next, typeof(*pos), member),	\
 		n = list_entry(pos->member.next, typeof(*pos), member);	\
 	     &pos->member != (head); 					\

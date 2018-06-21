@@ -1967,9 +1967,17 @@ __alloc_pages_nodemask(gfp_t gfp_mask, unsigned int order,
 EXPORT_SYMBOL(__alloc_pages_nodemask);
 
 /*
- * Common helper functions.
+   申请连续的“物理页”.
+   * kmalloc()和__get_free_pages()：在物理内存“[0M, 896M),e.g. ZONE_NORMAL,ZONE_DMA”中分配，
+   									该物理内存区域被“静态映射”到 3GB ~ 3GB+896MB 这896MB的
+   									内核线性地址空间，VA与PA间使用简单“偏移映射”，         
+   									因而，VA和PA均连续。
+   * vmalloc()：在物理内存“  [896M,4GB),e.g. ZONE_HIGHMEM”中分配，该物理内存区域被 “动态映射”到
+                3GB+896MB ~ 4GB 这128MB的内核虚拟地址空间，VA与PA间使用“页表映射”，
+                故而VA连续，PA不一定。
+   * ref：https://www.cnblogs.com/wuchanming/p/4756911.html
  */
-unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
+unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order /* pages = 2^order */)
 {
 	struct page *page;
 
@@ -1979,7 +1987,8 @@ unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
 	 */
 	VM_BUG_ON((gfp_mask & __GFP_HIGHMEM) != 0);
 
-	page = alloc_pages(gfp_mask, order);
+	/*alloc_page也能从ZONE_HIGHMEM分配内存，因为HIGHMEM区内存可能没有映射，而alloc_page只返回page（而不是VA，无需映射）*/
+	page = alloc_pages(gfp_mask, order);	/*低级内存分配函数*/
 	if (!page)
 		return 0;
 	return (unsigned long) page_address(page);
@@ -2001,8 +2010,8 @@ void __pagevec_free(struct pagevec *pvec)
 		free_hot_cold_page(pvec->pages[i], pvec->cold);
 	}
 }
-
-void __free_pages(struct page *page, unsigned int order)
+/* 释放连续的“物理页” */
+void __free_pages(struct page *page/*物理页*/, unsigned int order)
 {
 	if (put_page_testzero(page)) {
 		trace_mm_page_free_direct(page, order);
@@ -2015,7 +2024,8 @@ void __free_pages(struct page *page, unsigned int order)
 
 EXPORT_SYMBOL(__free_pages);
 
-void free_pages(unsigned long addr, unsigned int order)
+/* 释放VA addr指向的连续“物理页” */
+void free_pages(unsigned long addr/*虚拟地址*/, unsigned int order)
 {
 	if (addr != 0) {
 		VM_BUG_ON(!virt_addr_valid((void *)addr));

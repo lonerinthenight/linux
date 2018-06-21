@@ -35,24 +35,24 @@ enum stat_item {
 	NR_SLUB_STAT_ITEMS };
 
 struct kmem_cache_cpu {
-	void **freelist;	/* Pointer to first free per cpu object */
-	struct page *page;	/* The slab from which we are allocating */
-	int node;		/* The node of the page (or -1 for debug) */
-	unsigned int offset;	/* Freepointer offset (in word units) */
-	unsigned int objsize;	/* Size of an object (from kmem_cache) */
+	void 			**freelist;	/* Pointer to first free per cpu object */
+	struct 			page *page;	/* The slab from which we are allocating */
+	int 			node;		/* The node of the page (or -1 for debug) */
+	unsigned int 	offset;	/* Freepointer offset (in word units) */
+	unsigned int 	objsize;	/* Size of an object (from kmem_cache) */
 #ifdef CONFIG_SLUB_STATS
-	unsigned stat[NR_SLUB_STAT_ITEMS];
+	unsigned 		stat[NR_SLUB_STAT_ITEMS];
 #endif
 };
 
 struct kmem_cache_node {
-	spinlock_t list_lock;	/* Protect partial list and nr_partial */
-	unsigned long nr_partial;
-	struct list_head partial;
+	spinlock_t 			list_lock;	/* Protect partial list and nr_partial */
+	unsigned long 		nr_partial;
+	struct list_head 	partial;
 #ifdef CONFIG_SLUB_DEBUG
-	atomic_long_t nr_slabs;
-	atomic_long_t total_objects;
-	struct list_head full;
+	atomic_long_t 		nr_slabs;
+	atomic_long_t 		total_objects;
+	struct list_head 	full;
 #endif
 };
 
@@ -70,44 +70,44 @@ struct kmem_cache_order_objects {
  */
 struct kmem_cache {
 	/* Used for retriving partial slabs etc */
-	unsigned long flags;
-	int size;		/* The size of an object including meta data */
-	int objsize;		/* The size of an object without meta data */
-	int offset;		/* Free pointer offset. */
+	unsigned long					flags;
+	int 							size;		/* size of object including meta data */
+	int 							objsize;	/* size of object without meta data */
+	int 							offset;		/* Free pointer offset. */
 	struct kmem_cache_order_objects oo;
 
 	/*
 	 * Avoid an extra cache line for UP, SMP and for the node local to
 	 * struct kmem_cache.
 	 */
-	struct kmem_cache_node local_node;
+	struct kmem_cache_node 			local_node;
 
 	/* Allocation and freeing of slabs */
 	struct kmem_cache_order_objects max;
 	struct kmem_cache_order_objects min;
-	gfp_t allocflags;	/* gfp flags to use on each alloc */
-	int refcount;		/* Refcount for slab cache destroy */
+	gfp_t 							allocflags;		/* gfp flags to use on each alloc */
+	int 							refcount;		/* Refcount for slab cache destroy */
 	void (*ctor)(void *);
-	int inuse;		/* Offset to metadata */
-	int align;		/* Alignment */
-	unsigned long min_partial;
-	const char *name;	/* Name (only for display!) */
-	struct list_head list;	/* List of slab caches */
+	int 							inuse;		/* Offset to metadata */
+	int 							align;		/* Alignment */
+	unsigned long					min_partial;
+	const char 						*name;	/* Name (only for display!) */
+	struct list_head 				list;	/* List of slab caches */
 #ifdef CONFIG_SLUB_DEBUG
-	struct kobject kobj;	/* For sysfs */
+	struct kobject 					kobj;	/* For sysfs */
 #endif
 
 #ifdef CONFIG_NUMA
 	/*
 	 * Defragmentation by allocating from a remote node.
 	 */
-	int remote_node_defrag_ratio;
-	struct kmem_cache_node *node[MAX_NUMNODES];
+	int 							remote_node_defrag_ratio;
+	struct kmem_cache_node 			*node[MAX_NUMNODES];
 #endif
 #ifdef CONFIG_SMP
-	struct kmem_cache_cpu *cpu_slab[NR_CPUS];
+	struct kmem_cache_cpu 			*cpu_slab[NR_CPUS];
 #else
-	struct kmem_cache_cpu cpu_slab;
+	struct kmem_cache_cpu 			cpu_slab;
 #endif
 };
 
@@ -238,6 +238,17 @@ static __always_inline void *kmalloc_large(size_t size, gfp_t flags)
 	return ret;
 }
 
+/*
+   申请连续的“物理页”.
+   * kmalloc()和__get_free_pages()：在物理内存“[0M, 896M),e.g. ZONE_NORMAL,ZONE_DMA”中分配，
+   									该物理内存区域被“静态映射”到 3GB ~ 3GB+896MB 这896MB的
+   									内核线性地址空间，VA与PA间使用简单“偏移映射”，         
+   									因而，VA和PA均连续。
+   * vmalloc()：在物理内存“  [896M,4GB),e.g. ZONE_HIGHMEM”中分配，该物理内存区域被 “动态映射”到
+                3GB+896MB ~ 4GB 这128MB的内核虚拟地址空间，VA与PA间使用“页表映射”，
+                故而VA连续，PA不一定。
+   * ref：https://www.cnblogs.com/wuchanming/p/4756911.html
+ */
 static __always_inline void *kmalloc(size_t size, gfp_t flags)
 {
 	void *ret;

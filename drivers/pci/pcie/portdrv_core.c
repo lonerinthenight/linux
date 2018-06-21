@@ -503,7 +503,7 @@ static int pcie_port_probe_service(struct device *dev)
 		return -ENODEV;
 
 	pciedev = to_pcie_device(dev);
-	status = driver->probe(pciedev);
+	status = driver->probe(pciedev);	/*  每个pcie port最多支持4种pcie port服务类型：PCIE_PORT_SERVICE_PME、AER、HP、VC */
 	if (!status) {
 		dev_printk(KERN_DEBUG, dev, "service driver %s loaded\n",
 			driver->name);
@@ -551,9 +551,16 @@ static int pcie_port_remove_service(struct device *dev)
  */
 static void pcie_port_shutdown_service(struct device *dev) {}
 
-/**
- * pcie_port_service_register - register PCI Express port service driver
- * @new: PCI Express port service driver to register
+/*   1. “Linux PCI Driver Mode” 注册 “device driver”的方法： pci_register_driver
+     2. “PCIE port Bus Driver” 注册 “service driver”的方法： pcie_port_service_register
+        * “service driver”不能修改“interrupt mode”、只能访问分配给自己的资源。
+        * 每个“service driver”使用独立的硬件MSI/MSI-X中断资源（互不冲突）
+        * “service driver”间可能共享“PCI memory/IO空间”，它们需自己处理冲突
+        * “service driver”间可能共享“PCI config空间”（AER/PME的“RCTL—Root Control Register”、
+        											  “DCTL—Device Control Register” 不能共享）
+        * hpdriver_portdrv, 
+     3. pcie_port_service_register - register PCI Express port "service driver"
+       @new: PCI Express port service driver to register
  */
 int pcie_port_service_register(struct pcie_port_service_driver *new)
 {

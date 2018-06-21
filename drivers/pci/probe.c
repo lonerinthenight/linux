@@ -1245,6 +1245,7 @@ EXPORT_SYMBOL(pci_scan_bus_parented);
  * and enables them.
  *
  * Returns the max number of subordinate bus discovered.
+   usage: "echo 1 > /sys/bus/pci/rescan"  =  pci_rescan_bus(pdev->bus);
  */
 unsigned int __ref pci_rescan_bus(struct pci_bus *bus)
 {

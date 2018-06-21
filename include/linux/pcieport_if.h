@@ -69,9 +69,10 @@ struct pcie_port_service_driver {
 	pci_ers_result_t (*reset_link) (struct pci_dev *dev);
 
 	int port_type;  /* Type of the port this driver can handle */
-	u32 service;    /* Port service this device represents */
+	u32 service;    /* 每个pcie port最多支持4种pcie port服务类型：PCIE_PORT_SERVICE_PME、AER、HP、VC。
+					   每种服务对应一个单独的driver（由PBD：PCIE port Bus Driver统一管理）*/
 
-	struct device_driver driver;
+	struct device_driver driver;	/* pcie port服务 对应的driver*/
 };
 #define to_service_driver(d) \
 	container_of(d, struct pcie_port_service_driver, driver)

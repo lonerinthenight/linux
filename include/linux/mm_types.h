@@ -30,7 +30,7 @@ typedef atomic_long_t mm_counter_t;
 typedef unsigned long mm_counter_t;
 #endif /* !USE_SPLIT_PTLOCKS */
 
-/*
+/* “物理页”：
  * Each physical page in the system has a struct page associated with
  * it to keep track of whatever it is we are using the page for at the
  * moment. Note that we have no way to track which tasks are using
@@ -38,15 +38,13 @@ typedef unsigned long mm_counter_t;
  * who is mapping it.
  */
 struct page {
-	unsigned long flags;		/* Atomic flags, some possibly
-					 * updated asynchronously */
-	atomic_t _count;		/* Usage count, see below. */
+	unsigned long flags;		/* Atomic flags, some possibly updated asynchronously */
+	atomic_t _count;			/* Usage count, see below. */
 	union {
 		atomic_t _mapcount;	/* Count of ptes mapped in mms,
-					 * to show when page is mapped
-					 * & limit reverse map searches.
-					 */
-		struct {		/* SLUB */
+					           to show when page is mapped & limit reverse map searches. */
+		/* SLUB */
+		struct {
 			u16 inuse;
 			u16 objects;
 		};
@@ -125,7 +123,7 @@ struct vm_region {
 	atomic_t	vm_usage;	/* region usage count */
 };
 
-/*
+/* “进程地址 区域 空间”：
  * This struct defines a memory VMM memory area. There is one of these
  * per VM-area/task.  A VM area is any part of the process virtual memory
  * space that has a special rule for the page-fault handlers (ie a shared
@@ -134,15 +132,14 @@ struct vm_region {
 struct vm_area_struct {
 	struct mm_struct * vm_mm;	/* The address space we belong to. */
 	unsigned long vm_start;		/* Our start address within vm_mm. */
-	unsigned long vm_end;		/* The first byte after our end address
-					   within vm_mm. */
+	unsigned long vm_end;		/* The first byte after our end address within vm_mm. */
 					   	
-	struct vm_area_struct *vm_next;/* list of VMAs per task, sorted by address */
+	struct vm_area_struct *vm_next;/* 按address线性串联起来 */
 
 	pgprot_t vm_page_prot;		/* Access permissions of this VMA. */
-	unsigned long vm_flags;		/* Flags, see mm.h. */
+	unsigned long vm_flags;		/* Flags,e.g. VM_READ,VM_SHARED, VM_GROWSUP... */
 
-	struct rb_node vm_rb;		/*用rb树把VMAs链接起来*/
+	struct rb_node vm_rb;		/* 用rb tree把VMAs链接起来（mm.mm_rb是“树根”） */
 
 	/*
 	 * For areas with an address space and backing store,
@@ -173,8 +170,7 @@ struct vm_area_struct {
 	const struct vm_operations_struct *vm_ops;
 
 	/* Information about our backing store: */
-	unsigned long vm_pgoff;		/* Offset (within vm_file) in PAGE_SIZE
-					   units, *not* PAGE_CACHE_SIZE */
+	unsigned long vm_pgoff;		/* Offset (within vm_file) in PAGE_SIZE units, *not* PAGE_CACHE_SIZE */
 	struct file * vm_file;		/* File we map to (can be NULL). */
 	void * vm_private_data;		/* was vm_pte (shared mem) */
 	unsigned long vm_truncate_count;/* truncate_count or restart_addr */
@@ -198,7 +194,8 @@ struct core_state {
 	struct completion startup;
 };
 
-/*内核线程mm_struct = NULL,使用上一进程的mm_struct和页表。
+/*“进程地址空间”：
+  内核线程mm_struct = NULL,使用上一进程的mm_struct和页表。
   因内核线程不访问“用户空间”，所以只访问“进程地址空间”中的“内核空间”，
   这样，可避免切换mm_struct和页表的消耗*/
 struct mm_struct {

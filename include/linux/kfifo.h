@@ -24,6 +24,7 @@
 #include <linux/kernel.h>
 #include <linux/spinlock.h>
 
+/* 内核队列 */
 struct kfifo {
 	unsigned char *buffer;	/* the buffer holding the data */
 	unsigned int size;	/* the size of the allocated buffer */

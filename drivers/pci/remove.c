@@ -90,6 +90,7 @@ EXPORT_SYMBOL(pci_remove_bus);
  * For each device we remove, delete the device structure from the
  * device lists, remove the /proc entry, and notify userspace
  * (/sbin/hotplug).
+  usage: "echo 1 > /sys/bus/pci/devices/%s/remove" 
  */
 void pci_remove_bus_device(struct pci_dev *dev)
 {

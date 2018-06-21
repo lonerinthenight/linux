@@ -194,6 +194,9 @@ struct per_cpu_pageset {
 
 #endif /* !__GENERATING_BOUNDS.H */
 
+/* 站在内核的角度，把物理内存 划分为 ZONE_DMA,ZONE_DMA32,ZONE_NORMAL,ZONE_HIGHMEM... 区。
+   ref：https://www.cnblogs.com/wuchanming/p/4756911.html
+*/
 enum zone_type {
 #ifdef CONFIG_ZONE_DMA
 	/*
@@ -214,7 +217,7 @@ enum zone_type {
 	 * i386, x86_64 and multiple other arches
 	 * 			<16M.
 	 */
-	ZONE_DMA,
+	ZONE_DMA,	/*32位x86：物理地址 0MB    ~ 16MB，被静态映射到内核线性空间 3GB ~ 3GB+16MB */
 #endif
 #ifdef CONFIG_ZONE_DMA32
 	/*
@@ -229,7 +232,7 @@ enum zone_type {
 	 * performed on pages in ZONE_NORMAL if the DMA devices support
 	 * transfers to all addressable memory.
 	 */
-	ZONE_NORMAL,
+	ZONE_NORMAL,	/*32位x86：物理地址 16MB ~ 892MB，被静态映射到内核线性空间 3GB+16MB ~ 3GB+892MB */
 #ifdef CONFIG_HIGHMEM
 	/*
 	 * A memory area that is only addressable by the kernel through
@@ -239,7 +242,8 @@ enum zone_type {
 	 * table entries on i386) for each page that the kernel needs to
 	 * access.
 	 */
-	ZONE_HIGHMEM,
+	ZONE_HIGHMEM,	/*32位x86：物理地址 892MB ~ 4GB，被动态映射到内核线性空间 3GB+892MB ~ 4GB 
+									3GB+128MB 物理地址 --动态映射-->    128MB 内核线性空间	*/
 #endif
 	ZONE_MOVABLE,
 	__MAX_NR_ZONES

@@ -16,46 +16,45 @@
 #include <linux/compiler.h>
 #include <linux/kmemtrace.h>
 
-/*
- * struct kmem_cache
- *
- * manages a cache.
- */
+/* 1. slab/slub/slob分配器
+	 * slab
+	 * slub：slab的进化版，有取代slab的趋势。
+	 * slob：精简的小内存分配算法，主要用于嵌入式系统。
+   2. kmalloc基于slab/slub/slob
 
+  struct kmem_cache：manages a cache.
+ */
 struct kmem_cache {
 /* 1) per-cpu data, touched during every alloc/free */
 	struct array_cache *array[NR_CPUS];
 /* 2) Cache tunables. Protected by cache_chain_mutex */
-	unsigned int batchcount;
-	unsigned int limit;
-	unsigned int shared;
+	unsigned int 		batchcount;
+	unsigned int 		limit;
+	unsigned int 		shared;
 
-	unsigned int buffer_size;
-	u32 reciprocal_buffer_size;
+	unsigned int 		buffer_size;
+	u32 				reciprocal_buffer_size;
 /* 3) touched by every alloc & free from the backend */
 
-	unsigned int flags;		/* constant flags */
-	unsigned int num;		/* # of objs per slab */
+	unsigned int 		flags;		/* constant flags */
+	unsigned int 		num;		/* # of objs per slab */
 
 /* 4) cache_grow/shrink */
-	/* order of pgs per slab (2^n) */
-	unsigned int gfporder;
+	unsigned int 		gfporder;	/* order of pgs per slab (2^n) */
 
-	/* force GFP flags, e.g. GFP_DMA */
-	gfp_t gfpflags;
+	gfp_t 				gfpflags;	/* force GFP flags, e.g. GFP_DMA */
 
-	size_t colour;			/* cache colouring range */
-	unsigned int colour_off;	/* colour offset */
-	struct kmem_cache *slabp_cache;
-	unsigned int slab_size;
-	unsigned int dflags;		/* dynamic flags */
+	size_t 				colour;		/* cache colouring range */
+	unsigned int 		colour_off;	/* colour offset */
+	struct kmem_cache 	*slabp_cache;
+	unsigned int 		slab_size;
+	unsigned int 		dflags;		/* dynamic flags */
 
-	/* constructor func */
-	void (*ctor)(void *obj);
+	void (*ctor)(void *obj);		/* constructor func */
 
 /* 5) cache creation/removal */
-	const char *name;
-	struct list_head next;
+	const char 			*name;
+	struct list_head	next;
 
 /* 6) statistics */
 #ifdef CONFIG_DEBUG_SLAB
@@ -99,8 +98,8 @@ struct kmem_cache {
 
 /* Size description struct for general caches. */
 struct cache_sizes {
-	size_t		 	cs_size;
-	struct kmem_cache	*cs_cachep;
+	size_t		 		cs_size;	/* “malloc_sizes[i]槽位大小” 以32byte的倍数递增：1、2、3、4、6、8、16、32、64... */	
+	struct kmem_cache	*cs_cachep;	
 #ifdef CONFIG_ZONE_DMA
 	struct kmem_cache	*cs_dmacachep;
 #endif
@@ -109,6 +108,7 @@ extern struct cache_sizes malloc_sizes[];
 
 void *kmem_cache_alloc(struct kmem_cache *, gfp_t);
 void *__kmalloc(size_t size, gfp_t flags);
+
 
 #ifdef CONFIG_KMEMTRACE
 extern void *kmem_cache_alloc_notrace(struct kmem_cache *cachep, gfp_t flags);
@@ -125,24 +125,28 @@ static inline size_t slab_buffer_size(struct kmem_cache *cachep)
 }
 #endif
 
+
 static __always_inline void *kmalloc(size_t size, gfp_t flags)
 {
 	struct kmem_cache *cachep;
 	void *ret;
 
-	if (__builtin_constant_p(size)) {
+	if (__builtin_constant_p(size)/* 若size为“编译时的常量”，则返回1；否则，返回0 */) {
 		int i = 0;
 
 		if (!size)
 			return ZERO_SIZE_PTR;
 
-#define CACHE(x) \
+		/* malloc_sizes[i]槽位大小以32byte的倍数递增（1、2、3、4、6、8、16、32、64...）。
+		   找到适合size的“malloc_sizes[i]槽位”。*/
+		#define CACHE(x) \
 		if (size <= x) \
 			goto found; \
 		else \
 			i++;
-#include <linux/kmalloc_sizes.h>
-#undef CACHE
+		#include <linux/kmalloc_sizes.h>
+		#undef CACHE
+
 		return NULL;
 found:
 #ifdef CONFIG_ZONE_DMA
@@ -159,26 +163,30 @@ found:
 
 		return ret;
 	}
-	return __kmalloc(size, flags);
+	
+	return __kmalloc(size, flags);//here
 }
+
 
 #ifdef CONFIG_NUMA
 extern void *__kmalloc_node(size_t size, gfp_t flags, int node);
 extern void *kmem_cache_alloc_node(struct kmem_cache *, gfp_t flags, int node);
 
 #ifdef CONFIG_KMEMTRACE
-extern void *kmem_cache_alloc_node_notrace(struct kmem_cache *cachep,
-					   gfp_t flags,
-					   int nodeid);
+extern void *kmem_cache_alloc_node_notrace(
+								struct kmem_cache *cachep,
+					   			gfp_t flags,
+					   			int nodeid);
 #else
-static __always_inline void *
-kmem_cache_alloc_node_notrace(struct kmem_cache *cachep,
-			      gfp_t flags,
-			      int nodeid)
+static __always_inline void * kmem_cache_alloc_node_notrace(
+								struct kmem_cache *cachep,
+			      				gfp_t flags,
+			      				int nodeid)
 {
 	return kmem_cache_alloc_node(cachep, flags, nodeid);
 }
 #endif
+
 
 static __always_inline void *kmalloc_node(size_t size, gfp_t flags, int node)
 {
