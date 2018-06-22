@@ -69,7 +69,7 @@ static int enable_ecrc_checking(struct pci_dev *dev)
 }
 
 /**
- * disable_ercr_checking - disables PCIe ECRC checking for a device
+ * disable_ercr_checking - disables PCIe ECRC(端对端CRC) checking for a device
  * @dev: the PCI device
  *
  * Returns 0 on success, or negative on failure.
@@ -82,7 +82,7 @@ static int disable_ecrc_checking(struct pci_dev *dev)
 	if (!dev->is_pcie)
 		return -ENODEV;
 
-	pos = pci_find_ext_capability(dev, PCI_EXT_CAP_ID_ERR);
+	pos = pci_find_ext_capability(dev, PCI_EXT_CAP_ID_ERR);		/*PCI_EXT_CAP_ID_ERR的pos=0x148*/
 	if (!pos)
 		return -ENODEV;
 
@@ -94,7 +94,7 @@ static int disable_ecrc_checking(struct pci_dev *dev)
 }
 
 /**
- * pcie_set_ecrc_checking - set/unset PCIe ECRC checking for a device based on global policy
+ * pcie_set_ecrc_checking - set/unset PCIe ECRC(端对端CRC) checking for a device based on global policy
  * @dev: the PCI device
  */
 void pcie_set_ecrc_checking(struct pci_dev *dev)

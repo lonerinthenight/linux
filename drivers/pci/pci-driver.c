@@ -1115,8 +1115,8 @@ struct bus_type pci_bus_type = {
 	.probe		= pci_device_probe,
 	.remove		= pci_device_remove,
 	.shutdown	= pci_device_shutdown,
-	.dev_attrs	= pci_dev_attrs,	/*向用户输出“设备属性”的接口，如pci bus rescan、remove等*/
-	.bus_attrs	= pci_bus_attrs,
+	.dev_attrs	= pci_dev_attrs,		/* 向用户输出“设备属性”的接口，如pci bus rescan、remove等 */
+	.bus_attrs	= pci_bus_attrs,		/* "bus属性" 用户接口 */
 	.pm		= PCI_PM_OPS_PTR,
 };
 

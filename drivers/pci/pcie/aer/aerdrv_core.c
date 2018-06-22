@@ -30,26 +30,29 @@ static int nosourceid;
 module_param(forceload, bool, 0);
 module_param(nosourceid, bool, 0);
 
+/*使能 PCIE AER */
 int pci_enable_pcie_error_reporting(struct pci_dev *dev)
 {
 	u16 reg16 = 0;
 	int pos;
 
+	/* 获取PCI_EXT_CAP_ID_ERR类“PCIE扩展配置空间” */
 	pos = pci_find_ext_capability(dev, PCI_EXT_CAP_ID_ERR);
 	if (!pos)
 		return -EIO;
 
-	pos = pci_find_capability(dev, PCI_CAP_ID_EXP);
+	/* PCI Express-G Capability List (PEG)—Offset A0h：pos=0xA0 */
+	pos = pci_find_capability(dev, PCI_CAP_ID_EXP);	
 	if (!pos)
 		return -EIO;
 
-	pci_read_config_word(dev, pos+PCI_EXP_DEVCTL, &reg16);
+	pci_read_config_word(dev, pos+PCI_EXP_DEVCTL, &reg16);	/*Device Control (DCTL)—Offset A8h*/
 	reg16 = reg16 |
-		PCI_EXP_DEVCTL_CERE |
-		PCI_EXP_DEVCTL_NFERE |
-		PCI_EXP_DEVCTL_FERE |
-		PCI_EXP_DEVCTL_URRE;
-	pci_write_config_word(dev, pos+PCI_EXP_DEVCTL, reg16);
+		PCI_EXP_DEVCTL_CERE |	/* Correctable error: 硬件可纠正的错误（无须软件，不会丢失data） */
+		PCI_EXP_DEVCTL_NFERE |	/* Non-Fatal error: 指transaction不稳定 */
+		PCI_EXP_DEVCTL_FERE |	/* Non-Fatal error: 指link不稳定 */
+		PCI_EXP_DEVCTL_URRE;	/* 使能 report request */
+	pci_write_config_word(dev, pos+PCI_EXP_DEVCTL, reg16);	/* 使能PCIE AER (DCTL.BIT3-0) */
 
 	return 0;
 }
@@ -75,6 +78,7 @@ int pci_disable_pcie_error_reporting(struct pci_dev *dev)
 }
 EXPORT_SYMBOL_GPL(pci_disable_pcie_error_reporting);
 
+/* 清除 “fatal/non-fatal”类型pcie error 的状态信息 */
 int pci_cleanup_aer_uncorrect_error_status(struct pci_dev *dev)
 {
 	int pos;
@@ -127,7 +131,7 @@ static int set_device_error_reporting(struct pci_dev *dev, void *data)
 	}
 
 	if (enable)
-		pcie_set_ecrc_checking(dev);
+		pcie_set_ecrc_checking(dev);/*端到端CRC*/
 
 	return 0;
 }
@@ -310,7 +314,7 @@ static int report_error_detected(struct pci_dev *dev, void *data)
 	}
 
 	err_handler = dev->driver->err_handler;
-	vote = err_handler->error_detected(dev, result_data->state);
+	vote = err_handler->error_detected(dev, result_data->state);	/* aer_error_detected() */
 	result_data->result = merge_result(result_data->result, vote);
 	return 0;
 }
@@ -363,7 +367,7 @@ static int report_resume(struct pci_dev *dev, void *data)
 		return 0;
 
 	err_handler = dev->driver->err_handler;
-	err_handler->resume(dev);
+	err_handler->resume(dev);	/* aer_error_resume() */
 	return 0;
 }
 
@@ -457,6 +461,7 @@ static void find_aer_service(struct pci_dev *dev,
 	retval = device_for_each_child(&dev->dev, data, find_aer_service_iter);
 }
 
+/* 遇到fatal-err时，调用该函数 reset pcie physical link */
 static pci_ers_result_t reset_link(struct pcie_device *aerdev,
 		struct pci_dev *dev)
 {
@@ -489,8 +494,10 @@ static pci_ers_result_t reset_link(struct pcie_device *aerdev,
 			return PCI_ERS_RESULT_DISCONNECT;
 		}
 	}
-
-	status = data.aer_driver->reset_link(udev);
+	
+	/*调用 aer_root_reset()：由 pcie_port_service_register(&aerdriver) 注册*/
+	status = data.aer_driver->reset_link(udev);	
+	
 	if (status != PCI_ERS_RESULT_RECOVERED) {
 		dev_printk(KERN_DEBUG, &dev->dev, "link reset at upstream "
 			   "device %s failed\n", pci_name(udev));
@@ -521,12 +528,22 @@ static pci_ers_result_t do_recovery(struct pcie_device *aerdev,
 		state = pci_channel_io_frozen;
 	else
 		state = pci_channel_io_normal;
-
+	
+	/*0. 硬件检测到error。
+	  1. 相关节点driver调用“ aer_error_detected() ”
+		 *若non-fatal，
+	       * 则对 “所有下级节点” 调用 report_error_detected(dev, pci_channel_io_normal)。
+	         如, EndPoint <== DownstreamPort_B <== UpstreamPort_A <== RootPort中，
+	         UpstreamPort_A捕获到non-fatal，则对 EndPoint,DownstreamPort_B 调用
+	     *若fatal，则
+	       * 对 “所有下级节点” 调用 report_error_detected(dev, pci_channel_io_frozen)。
+	       * 对 “当前节点”调用 reset_link() */
 	status = broadcast_error_message(dev,
 			state,
 			"error_detected",
-			report_error_detected);
+			report_error_detected);				/*调用 aer_error_detected() */
 
+	/*3. device 物理层link reset: aer_root_reset()*/
 	if (severity == AER_FATAL) {
 		result = reset_link(aerdev, dev);
 		if (result != PCI_ERS_RESULT_RECOVERED) {
@@ -534,13 +551,15 @@ static pci_ers_result_t do_recovery(struct pcie_device *aerdev,
 			return result;
 		}
 	}
-
-	if (status == PCI_ERS_RESULT_CAN_RECOVER)
+	
+	/*2. re-enable MMIO to the device(非DMA)：没实现*/
+	if (status == PCI_ERS_RESULT_CAN_RECOVER/* CAN_RECOVER && RECOVERED */)
 		status = broadcast_error_message(dev,
 				state,
 				"mmio_enabled",
-				report_mmio_enabled);
+				report_mmio_enabled);			/*  */
 
+	/*4. slot reset（hot reset或 PCIE槽RST# ）: 未实现 */
 	if (status == PCI_ERS_RESULT_NEED_RESET) {
 		/*
 		 * TODO: Should call platform-specific
@@ -550,15 +569,16 @@ static pci_ers_result_t do_recovery(struct pcie_device *aerdev,
 		status = broadcast_error_message(dev,
 				state,
 				"slot_reset",
-				report_slot_reset);
+				report_slot_reset);				/*  */
 	}
-
+	/*5. resume（告诉driver 故障恢复正常）: aer_error_resume()*/
 	if (status == PCI_ERS_RESULT_RECOVERED)
 		broadcast_error_message(dev,
 				state,
 				"resume",
-				report_resume);
-
+				report_resume);					/* 调用 aer_error_resume() */
+	
+	/*6. Permanent Failure(driver恢复dev失败,卸载自己,通知上层): error_detected(pci_channel_io_perm_failure) */
 	return status;
 }
 
@@ -578,15 +598,13 @@ static void handle_error_source(struct pcie_device *aerdev,
 	int pos;
 
 	if (info->severity == AER_CORRECTABLE) {
-		/*
-		 * Correctable error does not need software intevention.
-		 * No need to go through error recovery process.
-		 */
+		/* "可纠正错误" 由硬件处理，软件只需清除 ”错误状态寄存器“ */
 		pos = pci_find_ext_capability(dev, PCI_EXT_CAP_ID_ERR);
 		if (pos)
 			pci_write_config_dword(dev, pos + PCI_ERR_COR_STATUS,
 					info->status);
 	} else {
+		/* ”Non-fatal/Fatal“ 由软件处理， reset pcie physical link */
 		status = do_recovery(aerdev, dev, info->severity);
 		if (status == PCI_ERS_RESULT_RECOVERED) {
 			dev_printk(KERN_DEBUG, &dev->dev, "AER driver "
@@ -844,7 +862,7 @@ void aer_isr(struct work_struct *work)
 	mutex_lock(&rpc->rpc_mutex);
 	e_src = get_e_source(rpc);
 	while (e_src) {
-		aer_isr_one_error(p_device, e_src);
+		aer_isr_one_error(p_device, e_src);/* 处理单个 AER 错误 */
 		e_src = get_e_source(rpc);
 	}
 	mutex_unlock(&rpc->rpc_mutex);

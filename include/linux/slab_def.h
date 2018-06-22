@@ -82,24 +82,19 @@ struct kmem_cache {
 	atomic_t allocmiss;
 	atomic_t freehit;
 	atomic_t freemiss;
-
-	/*
-	 * If debugging is enabled, then the allocator can add additional
+	/* If debugging is enabled, then the allocator can add additional
 	 * fields and/or padding to every object. buffer_size contains the total
 	 * object size including these internal fields, the following two
-	 * variables contain the offset to the user object and its size.
-	 */
+	 * variables contain the offset to the user object and its size. */
 	int obj_offset;
 	int obj_size;
 #endif /* CONFIG_DEBUG_SLAB */
 
-	/*
-	 * We put nodelists[] at the end of kmem_cache, because we want to size
+	/* We put nodelists[] at the end of kmem_cache, because we want to size
 	 * this array to nr_node_ids slots instead of MAX_NUMNODES
 	 * (see kmem_cache_init())
 	 * We still use [MAX_NUMNODES] and not [1] or [0] because cache_cache
-	 * is statically defined, so we reserve the max number of nodes.
-	 */
+	 * is statically defined, so we reserve the max number of nodes. */
 	struct kmem_list3 *nodelists[MAX_NUMNODES];
 	/*
 	 * Do not add fields after nodelists[]

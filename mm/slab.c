@@ -292,18 +292,18 @@ struct arraycache_init {
  */
 struct kmem_list3 {
 	/* 把所有“struct slab.list”串联起来 */
-	struct list_head slabs_partial;	/* partial list first, better asm code */
-	struct list_head slabs_full;	/* 所有slab都已被分配 */
-	struct list_head slabs_free;	/* 所有slab都没被分配 */
+	struct list_head 	slabs_partial;	/* partial list first, better asm code */
+	struct list_head 	slabs_full;		/* 所有slab都已被分配 */
+	struct list_head 	slabs_free;		/* 所有slab都没被分配 */
 	
-	unsigned long free_objects;
-	unsigned int free_limit;
-	unsigned int colour_next;	/* Per-node cache coloring */
-	spinlock_t list_lock;
-	struct array_cache *shared;	/* shared per node */
-	struct array_cache **alien;	/* on other nodes */
-	unsigned long next_reap;	/* updated without locking */
-	int free_touched;		/* updated without locking */
+	unsigned long 		free_objects;
+	unsigned int 		free_limit;
+	unsigned int 		colour_next;	/* Per-node cache coloring */
+	spinlock_t 			list_lock;
+	struct array_cache 	*shared;		/* shared per node */
+	struct array_cache 	**alien;		/* on other nodes */
+	unsigned long 		next_reap;		/* updated without locking */
+	int 				free_touched;	/* updated without locking */
 };
 
 /*

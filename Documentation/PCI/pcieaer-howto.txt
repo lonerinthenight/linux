@@ -13,7 +13,7 @@ Reporting (AER) driver and provides information on how to use it, as
 well as how to enable the drivers of endpoint devices to conform with
 PCI Express AER driver.
 
-1.2 Copyright © Intel Corporation 2006.
+1.2 Copyright ?Intel Corporation 2006.
 
 1.3 What is the PCI Express AER Driver?
 
@@ -58,7 +58,7 @@ details regarding OSC usage. Currently, lots of firmwares don't provide
 _OSC support while they use PCI Express. To support such firmwares,
 forceload, a parameter of type bool, could enable AER to continue to
 be initiated although firmwares have no _OSC support. To enable the
-walkaround, pls. add aerdriver.forceload=y to kernel boot parameter line
+walkaround, pls. add "aerdriver.forceload=y" to kernel boot parameter line
 when booting kernel. Note that forceload=n by default.
 
 nosourceid, another parameter of type bool, can be used when broken
@@ -104,7 +104,7 @@ interface. The PCI Express protocol can recover without any software
 intervention or any loss of data. These errors are detected and
 corrected by hardware. Unlike correctable errors, uncorrectable
 errors impact functionality of the interface. Uncorrectable errors
-can cause a particular transaction or a particular PCI Express link
+can cause a particular *transaction(NON-FATAL)* or a particular PCI Express *link*(FATAL)
 to be unreliable. Depending on those error conditions, uncorrectable
 errors are further classified into non-fatal errors and fatal errors.
 Non-fatal errors cause the particular transaction to be unreliable,

@@ -477,15 +477,17 @@ struct module;
 struct pci_driver {
 	struct list_head node;
 	char *name;
-	const struct pci_device_id *id_table;	/* must be non-NULL for probe to be called */
+	const struct pci_device_id *id_table;									/* must be non-NULL for probe to be called */
 	int  (*probe)  (struct pci_dev *dev, const struct pci_device_id *id);	/* New device inserted */
-	void (*remove) (struct pci_dev *dev);	/* Device removed (NULL if not a hot-plug capable driver) */
-	int  (*suspend) (struct pci_dev *dev, pm_message_t state);	/* Device suspended */
+	void (*remove) (struct pci_dev *dev);									/* Device removed (NULL if not a hot-plug capable driver) */
+	int  (*suspend) (struct pci_dev *dev, pm_message_t state);				/* Device suspended */
 	int  (*suspend_late) (struct pci_dev *dev, pm_message_t state);
 	int  (*resume_early) (struct pci_dev *dev);
-	int  (*resume) (struct pci_dev *dev);	                /* Device woken up */
+	int  (*resume) (struct pci_dev *dev);	                				/* Device woken up */
 	void (*shutdown) (struct pci_dev *dev);
-	struct pci_error_handlers *err_handler;
+	
+	struct pci_error_handlers *err_handler;		/* callback func for pci AER */
+
 	struct device_driver	driver;
 	struct pci_dynids dynids;
 };

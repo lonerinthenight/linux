@@ -221,6 +221,7 @@ msi_bus_store(struct device *dev, struct device_attribute *attr,
 
 #ifdef CONFIG_HOTPLUG
 static DEFINE_MUTEX(pci_remove_rescan_mutex);
+/*rescan 所有 pcie bus（从“pci_root_buses”开始）：/sys/bus/pci/rescan */
 static ssize_t bus_rescan_store(struct bus_type *bus, const char *buf,
 				size_t count)
 {
@@ -240,11 +241,11 @@ static ssize_t bus_rescan_store(struct bus_type *bus, const char *buf,
 }
 
 struct bus_attribute pci_bus_attrs[] = {
-	__ATTR(rescan, (S_IWUSR|S_IWGRP), NULL, bus_rescan_store),
+	__ATTR(rescan, (S_IWUSR|S_IWGRP), NULL, bus_rescan_store),	/* rescan pci bus: /sys/bus/pci/rescan */
 	__ATTR_NULL
 };
 
-/* /sys/bus/pci/rescan */
+/* rescan dev所在bus及其子bus */
 static ssize_t dev_rescan_store(struct device *dev, struct device_attribute *attr,
 		 const char *buf, size_t count)
 {
@@ -312,7 +313,7 @@ struct device_attribute pci_dev_attrs[] = {
 	__ATTR(msi_bus, 0644, msi_bus_show, msi_bus_store),
 #ifdef CONFIG_HOTPLUG
 	__ATTR(remove, (S_IWUSR|S_IWGRP), NULL, remove_store),		/* remove pci dev*/
-	__ATTR(rescan, (S_IWUSR|S_IWGRP), NULL, dev_rescan_store),	/* rescan pci bus for the dev. /sys/bus/pci/rescan */
+	__ATTR(rescan, (S_IWUSR|S_IWGRP), NULL, dev_rescan_store),	/* rescan pci bus for the dev. */
 #endif
 	__ATTR_NULL,
 };

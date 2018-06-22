@@ -65,7 +65,8 @@ struct pcie_port_service_driver {
 	/* Service Error Recovery Handler */
 	struct pci_error_handlers *err_handler;
 
-	/* Link Reset Capability - AER service driver specific */
+	/* Link Reset Capability - AER service driver specific。
+	   遇到fatal-err时，调用该函数 reset pcie physical */
 	pci_ers_result_t (*reset_link) (struct pci_dev *dev);
 
 	int port_type;  /* Type of the port this driver can handle */
@@ -74,6 +75,7 @@ struct pcie_port_service_driver {
 
 	struct device_driver driver;	/* pcie port服务 对应的driver*/
 };
+
 #define to_service_driver(d) \
 	container_of(d, struct pcie_port_service_driver, driver)
 

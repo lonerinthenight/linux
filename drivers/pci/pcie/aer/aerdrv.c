@@ -150,7 +150,7 @@ static struct aer_rpc *aer_alloc_rpc(struct pcie_device *dev)
 	spin_lock_init(&rpc->e_lock);
 
 	rpc->rpd = dev;
-	INIT_WORK(&rpc->dpc_handler, aer_isr);
+	INIT_WORK(&rpc->dpc_handler, aer_isr/* PCIE AER 服务程序 */);
 	rpc->prod_idx = rpc->cons_idx = 0;
 	mutex_init(&rpc->rpc_mutex);
 	init_waitqueue_head(&rpc->wait_release);
@@ -224,7 +224,7 @@ static int __devinit aer_probe(struct pcie_device *dev)
 	return status;
 }
 
-/**
+/** 遇到fatal-err时，调用该函数 reset pcie physical link。
  * aer_root_reset - reset link on Root Port
  * @dev: pointer to Root Port's pci_dev data structure
  *

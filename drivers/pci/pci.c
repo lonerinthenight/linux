@@ -191,11 +191,14 @@ static int __pci_bus_find_cap_start(struct pci_bus *bus,
 int pci_find_capability(struct pci_dev *dev, int cap)
 {
 	int pos;
-
+	
+	/* 获取pcie_config_space."Capabilities Pointer"(0x34 for bridge/normal) */
 	pos = __pci_bus_find_cap_start(dev->bus, dev->devfn, dev->hdr_type);
-	if (pos)
+	if (pos){
+		/* pos=0x34 -> pos=0x88 -> pos=0x80 -> pos=0x90 -> pos=0xA0 ...
+						   |_cap_id=Dh |_cap_id=1h |_cap_id=5h |_cap_id=10h...*/
 		pos = __pci_find_next_cap(dev->bus, dev->devfn, pos, cap);
-
+	}
 	return pos;
 }
 
@@ -240,7 +243,7 @@ int pci_bus_find_capability(struct pci_bus *bus, unsigned int devfn, int cap)
  *  %PCI_EXT_CAP_ID_DSN		Device Serial Number
  *  %PCI_EXT_CAP_ID_PWR		Power Budgeting
  */
-int pci_find_ext_capability(struct pci_dev *dev, int cap)
+int pci_find_ext_capability(struct pci_dev *dev, int cap /*cap_id, e.g. PCI_EXT_CAP_ID_ERR*/)
 {
 	u32 header;
 	int ttl;
@@ -251,14 +254,20 @@ int pci_find_ext_capability(struct pci_dev *dev, int cap)
 
 	if (dev->cfg_size <= PCI_CFG_SPACE_SIZE)
 		return 0;
-
 	if (pci_read_config_dword(dev, pos, &header) != PCIBIOS_SUCCESSFUL)
 		return 0;
 
-	/*
-	 * If we have no capabilities, this is indicated by cap ID,
-	 * cap version and next pointer all being 0.
-	 */
+	/* pcie_config_reg: pcie_config_space + pcie_extend_config_space
+	   * 0x000-0x0FF: "PCIE Config Space"
+	  	  * 0x000-0x03f: "Common Config Space Header"
+		  * 0x080-0x08f: "Power Management Capability Structure"
+		  * 0x090-0x09f: "MSI and MSI-X Capability Structures"
+		  * 0x0a0-0x0ff: "PCIE Capability Structure"
+	   * 0x100-0xfff: "PCIE Extended Config Space"
+	      * 0x100为“Extended Capability Header”：bit31-20是offset,bit19-16是version,bit15-0是id */
+
+	/* pcie_config_reg.0x100 = 0（cap ID, cap version, next pointer all being 0）,
+	   则不支持pcie_extend_config_space（no capabilities） */
 	if (header == 0)
 		return 0;
 
@@ -266,6 +275,9 @@ int pci_find_ext_capability(struct pci_dev *dev, int cap)
 		if (PCI_EXT_CAP_ID(header) == cap)
 			return pos;
 
+		/*目标：cap_id=1(PCI_EXT_CAP_ID_ERR)
+		  过程：pos=0x100 		 -> pos=0x110 		 -> #pos=0x148#
+		   		    |_cap_i=bh 		|_cap_id=dh         |_cap_id=1h*/
 		pos = PCI_EXT_CAP_NEXT(header);
 		if (pos < PCI_CFG_SPACE_SIZE)
 			break;
